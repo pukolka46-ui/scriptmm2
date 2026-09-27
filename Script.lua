@@ -1,5 +1,5 @@
 --[[
-    MM2 Script v1.1
+    MM2 Script v1.2
     Murder Mystery 2 GUI Script
     
     Injection:
@@ -11,6 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
 
 -- ==================== CONFIG ====================
 local Config = {
@@ -33,22 +34,24 @@ local Config = {
     MenuKey = Enum.KeyCode.RightShift
 }
 
--- ==================== THEME ====================
+-- ==================== THEME (NEW DESIGN) ====================
 local Theme = {
-    Background = Color3.fromRGB(15, 15, 20),
-    Sidebar = Color3.fromRGB(20, 20, 28),
-    SidebarButton = Color3.fromRGB(30, 30, 40),
-    SidebarButtonHover = Color3.fromRGB(40, 40, 55),
-    SidebarButtonActive = Color3.fromRGB(88, 101, 242),
-    Content = Color3.fromRGB(25, 25, 32),
-    Text = Color3.fromRGB(240, 240, 245),
-    TextMuted = Color3.fromRGB(150, 150, 160),
-    Accent = Color3.fromRGB(88, 101, 242),
-    ToggleOff = Color3.fromRGB(60, 60, 70),
-    ToggleOn = Color3.fromRGB(87, 242, 135),
-    SliderBar = Color3.fromRGB(45, 45, 55),
-    SliderFill = Color3.fromRGB(88, 101, 242),
-    ButtonBackground = Color3.fromRGB(88, 101, 242),
+    Background = Color3.fromRGB(18, 18, 18),
+    Sidebar = Color3.fromRGB(25, 25, 25),
+    SidebarButton = Color3.fromRGB(35, 35, 35),
+    SidebarButtonHover = Color3.fromRGB(45, 45, 45),
+    SidebarButtonActive = Color3.fromRGB(255, 65, 65),
+    Content = Color3.fromRGB(30, 30, 30),
+    Text = Color3.fromRGB(255, 255, 255),
+    TextMuted = Color3.fromRGB(140, 140, 140),
+    Accent = Color3.fromRGB(255, 65, 65),
+    ToggleOff = Color3.fromRGB(50, 50, 50),
+    ToggleOn = Color3.fromRGB(255, 65, 65),
+    SliderBar = Color3.fromRGB(40, 40, 40),
+    SliderFill = Color3.fromRGB(255, 65, 65),
+    ButtonBackground = Color3.fromRGB(255, 65, 65),
+    GradientStart = Color3.fromRGB(255, 65, 65),
+    GradientEnd = Color3.fromRGB(255, 150, 65),
 }
 
 -- ==================== GUI ====================
@@ -67,109 +70,145 @@ function GUI.new(title, size)
     screenGui.DisplayOrder = 999
     
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = size or UDim2.new(0, 600, 0, 400)
-    mainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
+    mainFrame.Size = size or UDim2.new(0, 650, 0, 450)
+    mainFrame.Position = UDim2.new(0.5, -325, 0.5, -225)
     mainFrame.BackgroundColor3 = Theme.Background
     mainFrame.BorderSizePixel = 0
     mainFrame.ClipsDescendants = true
     mainFrame.Parent = screenGui
     
     local mainCorner = Instance.new("UICorner")
-    mainCorner.CornerRadius = UDim.new(0, 12)
+    mainCorner.CornerRadius = UDim.new(0, 16)
     mainCorner.Parent = mainFrame
     
-    -- Sidebar
+    -- Gradient border effect
+    local borderGradient = Instance.new("UIStroke")
+    borderGradient.Color = Theme.Accent
+    borderGradient.Thickness = 2
+    borderGradient.Transparency = 0.5
+    borderGradient.Parent = mainFrame
+    
+    -- Sidebar with gradient
     local sidebar = Instance.new("Frame")
-    sidebar.Size = UDim2.new(0, 70, 1, 0)
+    sidebar.Size = UDim2.new(0, 80, 1, 0)
     sidebar.BackgroundColor3 = Theme.Sidebar
     sidebar.BorderSizePixel = 0
     sidebar.Parent = mainFrame
     
     local sidebarCorner = Instance.new("UICorner")
-    sidebarCorner.CornerRadius = UDim.new(0, 12)
+    sidebarCorner.CornerRadius = UDim.new(0, 16)
     sidebarCorner.Parent = sidebar
     
     local sidebarFix = Instance.new("Frame")
-    sidebarFix.Size = UDim2.new(0, 20, 1, 0)
-    sidebarFix.Position = UDim2.new(1, -20, 0, 0)
+    sidebarFix.Size = UDim2.new(0, 25, 1, 0)
+    sidebarFix.Position = UDim2.new(1, -25, 0, 0)
     sidebarFix.BackgroundColor3 = Theme.Sidebar
     sidebarFix.BorderSizePixel = 0
     sidebarFix.Parent = sidebar
     
-    -- Logo
+    -- Accent line on sidebar
+    local accentLine = Instance.new("Frame")
+    accentLine.Size = UDim2.new(0, 3, 1, 0)
+    accentLine.Position = UDim2.new(1, -3, 0, 0)
+    accentLine.BackgroundColor3 = Theme.Accent
+    accentLine.BorderSizePixel = 0
+    accentLine.Parent = sidebar
+    
+    -- Logo with gradient effect
     local logoLabel = Instance.new("TextLabel")
-    logoLabel.Size = UDim2.new(1, 0, 0, 60)
+    logoLabel.Size = UDim2.new(1, 0, 0, 70)
     logoLabel.BackgroundTransparency = 1
     logoLabel.Text = "MM2"
     logoLabel.TextColor3 = Theme.Accent
     logoLabel.Font = Enum.Font.GothamBold
-    logoLabel.TextSize = 18
+    logoLabel.TextSize = 22
     logoLabel.Parent = sidebar
+    
+    local logoSubtitle = Instance.new("TextLabel")
+    logoSubtitle.Size = UDim2.new(1, 0, 0, 20)
+    logoSubtitle.Position = UDim2.new(0, 0, 0, 50)
+    logoSubtitle.BackgroundTransparency = 1
+    logoSubtitle.Text = "SCRIPT"
+    logoSubtitle.TextColor3 = Theme.TextMuted
+    logoSubtitle.Font = Enum.Font.GothamBold
+    logoSubtitle.TextSize = 10
+    logoSubtitle.Parent = sidebar
     
     -- Buttons container
     local buttonsContainer = Instance.new("Frame")
     buttonsContainer.Size = UDim2.new(1, 0, 1, -130)
-    buttonsContainer.Position = UDim2.new(0, 0, 0, 70)
+    buttonsContainer.Position = UDim2.new(0, 0, 0, 80)
     buttonsContainer.BackgroundTransparency = 1
     buttonsContainer.Parent = sidebar
     
     local buttonsList = Instance.new("UIListLayout")
-    buttonsList.Padding = UDim.new(0, 8)
+    buttonsList.Padding = UDim.new(0, 6)
     buttonsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
     buttonsList.Parent = buttonsContainer
     
     -- Content area
     local contentArea = Instance.new("Frame")
-    contentArea.Size = UDim2.new(1, -70, 1, 0)
-    contentArea.Position = UDim2.new(0, 70, 0, 0)
+    contentArea.Size = UDim2.new(1, -80, 1, 0)
+    contentArea.Position = UDim2.new(0, 80, 0, 0)
     contentArea.BackgroundColor3 = Theme.Background
     contentArea.BorderSizePixel = 0
     contentArea.Parent = mainFrame
     
     -- Header
     local header = Instance.new("Frame")
-    header.Size = UDim2.new(1, 0, 0, 50)
+    header.Size = UDim2.new(1, 0, 0, 55)
     header.BackgroundColor3 = Theme.Background
     header.BorderSizePixel = 0
     header.Parent = contentArea
     
     local headerTitle = Instance.new("TextLabel")
-    headerTitle.Size = UDim2.new(1, -60, 1, 0)
-    headerTitle.Position = UDim2.new(0, 20, 0, 0)
+    headerTitle.Size = UDim2.new(1, -80, 1, 0)
+    headerTitle.Position = UDim2.new(0, 25, 0, 0)
     headerTitle.BackgroundTransparency = 1
     headerTitle.Text = title or "MM2 Script"
     headerTitle.TextColor3 = Theme.Text
     headerTitle.Font = Enum.Font.GothamBold
-    headerTitle.TextSize = 20
+    headerTitle.TextSize = 22
     headerTitle.TextXAlignment = Enum.TextXAlignment.Left
     headerTitle.Parent = header
     
+    local headerSubtitle = Instance.new("TextLabel")
+    headerSubtitle.Size = UDim2.new(1, -80, 0, 20)
+    headerSubtitle.Position = UDim2.new(0, 25, 0, 30)
+    headerSubtitle.BackgroundTransparency = 1
+    headerSubtitle.Text = "v1.2 | Made with ❤"
+    headerSubtitle.TextColor3 = Theme.TextMuted
+    headerSubtitle.Font = Enum.Font.Gotham
+    headerSubtitle.TextSize = 11
+    headerSubtitle.TextXAlignment = Enum.TextXAlignment.Left
+    headerSubtitle.Parent = header
+    
     -- Close button
     local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 32, 0, 32)
-    closeBtn.Position = UDim2.new(1, -45, 0.5, -16)
+    closeBtn.Size = UDim2.new(0, 35, 0, 35)
+    closeBtn.Position = UDim2.new(1, -50, 0.5, -17)
     closeBtn.BackgroundColor3 = Theme.SidebarButton
     closeBtn.Text = "✕"
-    closeBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    closeBtn.TextColor3 = Theme.Accent
     closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 16
+    closeBtn.TextSize = 18
     closeBtn.AutoButtonColor = false
     closeBtn.Parent = header
     
     local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 8)
+    closeCorner.CornerRadius = UDim.new(0, 10)
     closeCorner.Parent = closeBtn
     
     -- Content frame
     local contentFrame = Instance.new("Frame")
-    contentFrame.Size = UDim2.new(1, -40, 1, -70)
-    contentFrame.Position = UDim2.new(0, 20, 0, 55)
+    contentFrame.Size = UDim2.new(1, -50, 1, -80)
+    contentFrame.Position = UDim2.new(0, 25, 0, 60)
     contentFrame.BackgroundColor3 = Theme.Content
     contentFrame.BorderSizePixel = 0
     contentFrame.Parent = contentArea
     
     local contentCorner = Instance.new("UICorner")
-    contentCorner.CornerRadius = UDim.new(0, 10)
+    contentCorner.CornerRadius = UDim.new(0, 12)
     contentCorner.Parent = contentFrame
     
     self.Window = screenGui
@@ -184,11 +223,13 @@ function GUI.new(title, size)
     end)
     
     closeBtn.MouseEnter:Connect(function()
-        closeBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+        closeBtn.BackgroundColor3 = Theme.Accent
+        closeBtn.TextColor3 = Theme.Text
     end)
     
     closeBtn.MouseLeave:Connect(function()
         closeBtn.BackgroundColor3 = Theme.SidebarButton
+        closeBtn.TextColor3 = Theme.Accent
     end)
     
     -- Dragging
@@ -234,7 +275,7 @@ function GUI:CreateTab(name, icon)
     local iconText = icon or "●"
     
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 54, 0, 54)
+    btn.Size = UDim2.new(0, 65, 0, 50)
     btn.BackgroundColor3 = Theme.SidebarButton
     btn.Text = ""
     btn.AutoButtonColor = false
@@ -245,13 +286,13 @@ function GUI:CreateTab(name, icon)
     btnCorner.Parent = btn
     
     local iconLabel = Instance.new("TextLabel")
-    iconLabel.Size = UDim2.new(1, 0, 0, 28)
-    iconLabel.Position = UDim2.new(0, 0, 0, 8)
+    iconLabel.Size = UDim2.new(1, 0, 0, 24)
+    iconLabel.Position = UDim2.new(0, 0, 0, 6)
     iconLabel.BackgroundTransparency = 1
     iconLabel.Text = iconText
     iconLabel.TextColor3 = Theme.TextMuted
     iconLabel.Font = Enum.Font.GothamMedium
-    iconLabel.TextSize = 20
+    iconLabel.TextSize = 18
     iconLabel.Parent = btn
     
     local nameLabel = Instance.new("TextLabel")
@@ -261,7 +302,7 @@ function GUI:CreateTab(name, icon)
     nameLabel.Text = name
     nameLabel.TextColor3 = Theme.TextMuted
     nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 10
+    nameLabel.TextSize = 9
     nameLabel.Parent = btn
     
     local scrollFrame = Instance.new("ScrollingFrame")
@@ -271,12 +312,12 @@ function GUI:CreateTab(name, icon)
     scrollFrame.BorderSizePixel = 0
     scrollFrame.ScrollBarThickness = 4
     scrollFrame.ScrollBarImageColor3 = Theme.Accent
-    scrollFrame.ScrollBarImageTransparency = 0.5
+    scrollFrame.ScrollBarImageTransparency = 0.3
     scrollFrame.Visible = false
     scrollFrame.Parent = self.ContentFrame
     
     local listLayout = Instance.new("UIListLayout")
-    listLayout.Padding = UDim.new(0, 10)
+    listLayout.Padding = UDim.new(0, 8)
     listLayout.Parent = scrollFrame
     
     local padding = Instance.new("UIPadding")
@@ -332,25 +373,25 @@ end
 
 function GUI:CreateSection(tab, text)
     local section = Instance.new("TextLabel")
-    section.Size = UDim2.new(1, 0, 0, 35)
+    section.Size = UDim2.new(1, 0, 0, 30)
     section.BackgroundTransparency = 1
     section.Text = "  " .. text
     section.TextColor3 = Theme.Accent
     section.Font = Enum.Font.GothamBold
-    section.TextSize = 15
+    section.TextSize = 14
     section.TextXAlignment = Enum.TextXAlignment.Left
     section.Parent = tab
 end
 
 function GUI:CreateToggle(tab, text, callback)
     local toggleFrame = Instance.new("Frame")
-    toggleFrame.Size = UDim2.new(1, 0, 0, 45)
+    toggleFrame.Size = UDim2.new(1, 0, 0, 42)
     toggleFrame.BackgroundColor3 = Theme.SidebarButton
     toggleFrame.BorderSizePixel = 0
     toggleFrame.Parent = tab
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = toggleFrame
     
     local label = Instance.new("TextLabel")
@@ -360,31 +401,31 @@ function GUI:CreateToggle(tab, text, callback)
     label.Text = text
     label.TextColor3 = Theme.Text
     label.Font = Enum.Font.GothamMedium
-    label.TextSize = 14
+    label.TextSize = 13
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = toggleFrame
     
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 50, 0, 26)
-    btn.Position = UDim2.new(1, -62, 0.5, -13)
+    btn.Size = UDim2.new(0, 45, 0, 24)
+    btn.Position = UDim2.new(1, -57, 0.5, -12)
     btn.BackgroundColor3 = Theme.ToggleOff
     btn.Text = ""
     btn.AutoButtonColor = false
     btn.Parent = toggleFrame
     
     local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 13)
+    btnCorner.CornerRadius = UDim.new(0, 12)
     btnCorner.Parent = btn
     
     local circle = Instance.new("Frame")
-    circle.Size = UDim2.new(0, 20, 0, 20)
-    circle.Position = UDim2.new(0, 3, 0.5, -10)
-    circle.BackgroundColor3 = Theme.Text
+    circle.Size = UDim2.new(0, 18, 0, 18)
+    circle.Position = UDim2.new(0, 3, 0.5, -9)
+    circle.BackgroundColor3 = Theme.TextMuted
     circle.BorderSizePixel = 0
     circle.Parent = btn
     
     local circleCorner = Instance.new("UICorner")
-    circleCorner.CornerRadius = UDim.new(0, 10)
+    circleCorner.CornerRadius = UDim.new(0, 9)
     circleCorner.Parent = circle
     
     local enabled = false
@@ -393,10 +434,10 @@ function GUI:CreateToggle(tab, text, callback)
         enabled = value
         if enabled then
             TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Theme.ToggleOn}):Play()
-            TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 27, 0.5, -10)}):Play()
+            TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 24, 0.5, -9), BackgroundColor3 = Theme.Text}):Play()
         else
             TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Theme.ToggleOff}):Play()
-            TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 3, 0.5, -10)}):Play()
+            TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 3, 0.5, -9), BackgroundColor3 = Theme.TextMuted}):Play()
         end
         callback(enabled)
     end
@@ -413,35 +454,35 @@ end
 
 function GUI:CreateSlider(tab, text, min, max, callback)
     local sliderFrame = Instance.new("Frame")
-    sliderFrame.Size = UDim2.new(1, 0, 0, 60)
+    sliderFrame.Size = UDim2.new(1, 0, 0, 55)
     sliderFrame.BackgroundColor3 = Theme.SidebarButton
     sliderFrame.BorderSizePixel = 0
     sliderFrame.Parent = tab
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = sliderFrame
     
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -20, 0, 20)
+    label.Size = UDim2.new(1, -20, 0, 18)
     label.Position = UDim2.new(0, 15, 0, 8)
     label.BackgroundTransparency = 1
     label.Text = text .. ": " .. tostring(min)
     label.TextColor3 = Theme.Text
     label.Font = Enum.Font.GothamMedium
-    label.TextSize = 14
+    label.TextSize = 13
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = sliderFrame
     
     local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(1, -30, 0, 8)
-    bar.Position = UDim2.new(0, 15, 1, -25)
+    bar.Size = UDim2.new(1, -30, 0, 6)
+    bar.Position = UDim2.new(0, 15, 1, -22)
     bar.BackgroundColor3 = Theme.SliderBar
     bar.BorderSizePixel = 0
     bar.Parent = sliderFrame
     
     local barCorner = Instance.new("UICorner")
-    barCorner.CornerRadius = UDim.new(0, 4)
+    barCorner.CornerRadius = UDim.new(0, 3)
     barCorner.Parent = bar
     
     local fill = Instance.new("Frame")
@@ -451,7 +492,7 @@ function GUI:CreateSlider(tab, text, min, max, callback)
     fill.Parent = bar
     
     local fillCorner = Instance.new("UICorner")
-    fillCorner.CornerRadius = UDim.new(0, 4)
+    fillCorner.CornerRadius = UDim.new(0, 3)
     fillCorner.Parent = fill
     
     local value = min
@@ -500,21 +541,21 @@ end
 
 function GUI:CreateButton(tab, text, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 42)
+    btn.Size = UDim2.new(1, 0, 0, 40)
     btn.BackgroundColor3 = Theme.ButtonBackground
     btn.Text = text
     btn.TextColor3 = Theme.Text
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
+    btn.TextSize = 13
     btn.AutoButtonColor = false
     btn.Parent = tab
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = btn
     
     btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(108, 121, 255)}):Play()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(255, 85, 85)}):Play()
     end)
     
     btn.MouseLeave:Connect(function()
@@ -528,13 +569,13 @@ end
 
 function GUI:CreateDropdown(tab, text, options, callback)
     local dropdownFrame = Instance.new("Frame")
-    dropdownFrame.Size = UDim2.new(1, 0, 0, 45)
+    dropdownFrame.Size = UDim2.new(1, 0, 0, 42)
     dropdownFrame.BackgroundColor3 = Theme.SidebarButton
     dropdownFrame.BorderSizePixel = 0
     dropdownFrame.Parent = tab
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = dropdownFrame
     
     local label = Instance.new("TextLabel")
@@ -544,37 +585,33 @@ function GUI:CreateDropdown(tab, text, options, callback)
     label.Text = text
     label.TextColor3 = Theme.Text
     label.Font = Enum.Font.GothamMedium
-    label.TextSize = 14
+    label.TextSize = 13
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = dropdownFrame
     
     local dropdownBtn = Instance.new("TextButton")
-    dropdownBtn.Size = UDim2.new(0.5, -20, 0, 28)
-    dropdownBtn.Position = UDim2.new(0.5, 0, 0.5, -14)
-    dropdownBtn.BackgroundColor3 = Theme.Sidebar
+    dropdownBtn.Size = UDim2.new(0.5, -20, 0, 26)
+    dropdownBtn.Position = UDim2.new(0.5, 0, 0.5, -13)
+    dropdownBtn.BackgroundColor3 = Theme.Background
     dropdownBtn.Text = options[1] or "Select..."
     dropdownBtn.TextColor3 = Theme.Text
     dropdownBtn.Font = Enum.Font.GothamMedium
-    dropdownBtn.TextSize = 13
+    dropdownBtn.TextSize = 12
     dropdownBtn.AutoButtonColor = false
     dropdownBtn.Parent = dropdownFrame
     
     local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.CornerRadius = UDim.new(0, 8)
     btnCorner.Parent = dropdownBtn
     
-    local dropdownOpen = false
     local selectedOption = options[1]
     
     dropdownBtn.MouseButton1Click:Connect(function()
-        dropdownOpen = not dropdownOpen
-        
-        if dropdownOpen then
-            dropdownBtn.Text = "▼ " .. selectedOption
-        else
-            dropdownBtn.Text = selectedOption
-        end
-        
+        -- Simple cycle through options
+        local currentIndex = table.find(options, selectedOption) or 1
+        local nextIndex = (currentIndex % #options) + 1
+        selectedOption = options[nextIndex]
+        dropdownBtn.Text = selectedOption
         callback(selectedOption)
     end)
     
@@ -614,13 +651,17 @@ function ESP:getRoleColor(player)
 end
 
 function ESP:Run()
-    local camera = game.Workspace.CurrentCamera
+    local camera = Workspace.CurrentCamera
     local localPlayer = Players.LocalPlayer
     local localChar = localPlayer.Character
     if not localChar then return end
     
     local localRoot = localChar:FindFirstChild("HumanoidRootPart")
     if not localRoot then return end
+    
+    -- Get screen center for tracers
+    local viewportSize = camera.ViewportSize
+    local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
     
     local activeKeys = {}
     
@@ -638,12 +679,10 @@ function ESP:Run()
                             local key = "box_" .. plr.UserId
                             table.insert(activeKeys, key)
                             
-                            -- Get actual character dimensions
                             local head = char:FindFirstChild("Head")
                             local leftLeg = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLowerLeg")
                             local rightLeg = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightLowerLeg")
                             
-                            -- Calculate height from actual parts
                             local minY = root.Position.Y - 3
                             local maxY = root.Position.Y + 3
                             
@@ -667,7 +706,7 @@ function ESP:Run()
                                 
                                 if not self.Drawings[key] then
                                     self.Drawings[key] = Drawing.new("Square")
-                                    self.Drawings[key].Thickness = 1
+                                    self.Drawings[key].Thickness = 2
                                     self.Drawings[key].Filled = false
                                 end
                                 
@@ -680,21 +719,20 @@ function ESP:Run()
                             end
                         end
                         
-                        -- Tracers
+                        -- Tracers - FIXED: From screen center, not cursor
                         if Config.TracersEnabled then
                             local key = "tracer_" .. plr.UserId
                             table.insert(activeKeys, key)
                             
                             local rootScreen, onScreen = camera:WorldToScreenPoint(root.Position)
-                            local mouse = UserInputService:GetMouseLocation()
                             
                             if onScreen then
                                 if not self.Drawings[key] then
                                     self.Drawings[key] = Drawing.new("Line")
-                                    self.Drawings[key].Thickness = 1
+                                    self.Drawings[key].Thickness = 2
                                 end
                                 self.Drawings[key].Visible = true
-                                self.Drawings[key].From = Vector2.new(mouse.X, mouse.Y)
+                                self.Drawings[key].From = screenCenter -- Changed from mouse to screen center
                                 self.Drawings[key].To = Vector2.new(rootScreen.X, rootScreen.Y)
                                 self.Drawings[key].Color = self:getRoleColor(plr)
                             elseif self.Drawings[key] then
@@ -817,56 +855,82 @@ function Trolling:findSheriff()
 end
 
 function Trolling:flingPlayer(targetPlayer)
-    if not targetPlayer then return false end
+    if not targetPlayer then 
+        warn("No target player!")
+        return false 
+    end
     
-    local localChar = Players.LocalPlayer.Character
-    if not localChar then return false end
+    local localPlayer = Players.LocalPlayer
+    local localChar = localPlayer.Character
+    if not localChar then 
+        warn("No local character!")
+        return false 
+    end
     
     local localRoot = localChar:FindFirstChild("HumanoidRootPart")
     local localHumanoid = localChar:FindFirstChild("Humanoid")
     
-    if not localRoot or not localHumanoid then return false end
+    if not localRoot or not localHumanoid then 
+        warn("No root or humanoid!")
+        return false 
+    end
     
     local targetChar = targetPlayer.Character
-    if not targetChar then return false end
+    if not targetChar then 
+        warn("No target character!")
+        return false 
+    end
     
     local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     local targetHumanoid = targetChar:FindFirstChild("Humanoid")
     
-    if not targetRoot or not targetHumanoid then return false end
-    if targetHumanoid.Health <= 0 then return false end
+    if not targetRoot or not targetHumanoid then 
+        warn("No target root or humanoid!")
+        return false 
+    end
     
-    -- Store original state
+    if targetHumanoid.Health <= 0 then 
+        warn("Target is dead!")
+        return false 
+    end
+    
+    -- Store original values
     local originalWalkSpeed = localHumanoid.WalkSpeed
     local originalJumpPower = localHumanoid.JumpPower
+    local originalGravity = Workspace.Gravity
     
-    -- Set up for fling
+    -- Disable physics constraints
+    Workspace.Gravity = 0
     localHumanoid.WalkSpeed = 0
     localHumanoid.JumpPower = 0
     
-    -- Calculate fling direction
-    local direction = (targetRoot.Position - localRoot.Position).Unit
-    local flingDistance = 3
+    -- Teleport to target and create extreme velocity
+    local flingPos = targetRoot.Position + Vector3.new(0, 5, 0)
+    localRoot.CFrame = CFrame.new(flingPos)
     
-    -- Teleport behind target
-    local flingPos = targetRoot.Position - (direction * flingDistance)
-    localRoot.CFrame = CFrame.new(flingPos, targetRoot.Position)
-    
-    -- Wait for physics
     task.wait(0.1)
     
-    -- Apply velocity for fling effect
-    localRoot.Velocity = direction * 500 + Vector3.new(0, 200, 0)
-    localRoot.RotVelocity = Vector3.new(9999, 9999, 9999)
+    -- Apply extreme angular velocity for fling effect
+    for i = 1, 10 do
+        if localRoot and targetRoot then
+            localRoot.Velocity = Vector3.new(math.random(-500, 500), math.random(500, 1000), math.random(-500, 500))
+            localRoot.RotVelocity = Vector3.new(math.random(-9999, 9999), math.random(-9999, 9999), math.random(-9999, 9999))
+            task.wait(0.05)
+        end
+    end
     
-    -- Wait for fling to complete
+    -- Wait for impact
     task.wait(0.5)
     
-    -- Reset
+    -- Reset everything
+    Workspace.Gravity = originalGravity
     localHumanoid.WalkSpeed = originalWalkSpeed
     localHumanoid.JumpPower = originalJumpPower
-    localRoot.Velocity = Vector3.new(0, 0, 0)
-    localRoot.RotVelocity = Vector3.new(0, 0, 0)
+    
+    if localRoot then
+        localRoot.Velocity = Vector3.new(0, 0, 0)
+        localRoot.RotVelocity = Vector3.new(0, 0, 0)
+    end
     
     return true
 end
@@ -876,6 +940,7 @@ function Trolling:flingMurder()
     if murder then
         return self:flingPlayer(murder)
     end
+    warn("Could not find Murder!")
     return false
 end
 
@@ -884,6 +949,7 @@ function Trolling:flingSheriff()
     if sheriff then
         return self:flingPlayer(sheriff)
     end
+    warn("Could not find Sheriff!")
     return false
 end
 
@@ -897,25 +963,31 @@ function Aimbot:CreateFOVCircle()
     FOVCircle = Drawing.new("Circle")
     FOVCircle.Radius = Config.AimbotFOV
     FOVCircle.Filled = false
-    FOVCircle.Thickness = 1
-    FOVCircle.Color = Color3.fromRGB(255, 255, 255)
-    FOVCircle.Transparency = 0.5
+    FOVCircle.Thickness = 2
+    FOVCircle.Color = Color3.fromRGB(255, 65, 65)
+    FOVCircle.Transparency = 0.7
     FOVCircle.Visible = Config.ShowFOV
 end
 
 function Aimbot:UpdateFOVCircle()
-    if FOVCircle and Config.ShowFOV then
-        local mouse = UserInputService:GetMouseLocation()
-        FOVCircle.Position = Vector2.new(mouse.X, mouse.Y)
+    if not FOVCircle then return end
+    
+    if Config.ShowFOV then
+        -- FIXED: Center of screen, not cursor
+        local camera = Workspace.CurrentCamera
+        local viewportSize = camera.ViewportSize
+        local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+        
+        FOVCircle.Position = screenCenter
         FOVCircle.Radius = Config.AimbotFOV
-        FOVCircle.Visible = Config.ShowFOV
-    elseif FOVCircle then
+        FOVCircle.Visible = true
+    else
         FOVCircle.Visible = false
     end
 end
 
 function Aimbot:getBestTarget()
-    local camera = game.Workspace.CurrentCamera
+    local camera = Workspace.CurrentCamera
     local localPlayer = Players.LocalPlayer
     local localChar = localPlayer.Character
     if not localChar then return nil end
@@ -923,7 +995,10 @@ function Aimbot:getBestTarget()
     local localRoot = localChar:FindFirstChild("HumanoidRootPart")
     if not localRoot then return nil end
     
-    local mouse = UserInputService:GetMouseLocation()
+    -- Use screen center for FOV calculation
+    local viewportSize = camera.ViewportSize
+    local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    
     local bestTarget = nil
     local bestScore = math.huge
     
@@ -940,7 +1015,8 @@ function Aimbot:getBestTarget()
                         if not isTeam then
                             local screenPos, onScreen = camera:WorldToScreenPoint(root.Position)
                             if onScreen then
-                                local fov = Vector2.new(math.abs(screenPos.X - mouse.X), math.abs(screenPos.Y - mouse.Y)).Magnitude
+                                -- Distance from screen center
+                                local fov = Vector2.new(math.abs(screenPos.X - screenCenter.X), math.abs(screenPos.Y - screenCenter.Y)).Magnitude
                                 if fov <= Config.AimbotFOV then
                                     local score = fov + (dist / 10)
                                     if score < bestScore then
@@ -969,7 +1045,7 @@ function Aimbot:Run()
     local head = char:FindFirstChild("Head")
     local aimPos = head and (head.Position + Vector3.new(0, 0.3, 0)) or target.Root.Position
     
-    local camera = game.Workspace.CurrentCamera
+    local camera = Workspace.CurrentCamera
     local currentCFrame = camera.CFrame
     local targetCFrame = CFrame.new(currentCFrame.Position, aimPos)
     local newCFrame = currentCFrame:Lerp(targetCFrame, 1 / Config.AimbotSmooth)
@@ -978,10 +1054,10 @@ end
 
 -- ==================== MAIN ====================
 local LocalPlayer = Players.LocalPlayer
-local Camera = game.Workspace.CurrentCamera
+local Camera = Workspace.CurrentCamera
 
 -- Create GUI
-local gui = GUI.new("MM2 Script v1.1", UDim2.new(0, 600, 0, 400))
+local gui = GUI.new("MM2 Script", UDim2.new(0, 650, 0, 450))
 
 -- Create tabs
 local visualsTab = gui:CreateTab("Visuals", "👁")
@@ -1009,7 +1085,6 @@ gui:CreateToggle(aimbotTab, "Show FOV Circle", function(v)
 end)
 gui:CreateSlider(aimbotTab, "FOV", 50, 300, function(v) 
     Config.AimbotFOV = v
-    if FOVCircle then FOVCircle.Radius = v end
 end)
 gui:CreateSlider(aimbotTab, "Smooth", 1, 20, function(v) Config.AimbotSmooth = v end)
 
@@ -1022,24 +1097,32 @@ gui:CreateSection(trollingTab, "Fling")
 gui:CreateButton(trollingTab, "🔥 Fling Murder", function()
     local success = Trolling:flingMurder()
     if success then
-        print("Successfully flung murder!")
+        print("Successfully flung Murder!")
     else
-        warn("Could not find murder!")
+        warn("Failed to fling Murder!")
     end
 end)
 
 gui:CreateButton(trollingTab, "🔫 Fling Sheriff", function()
     local success = Trolling:flingSheriff()
     if success then
-        print("Successfully flung sheriff!")
+        print("Successfully flung Sheriff!")
     else
-        warn("Could not find sheriff!")
+        warn("Failed to fling Sheriff!")
     end
 end)
 
 gui:CreateSection(trollingTab, "Player Selection")
 local selectedPlayer = nil
-local playerDropdown = gui:CreateDropdown(trollingTab, "Target", {"Select Player"}, function(v)
+local playerNames = {}
+for _, plr in ipairs(Players:GetPlayers()) do
+    if plr ~= LocalPlayer then
+        table.insert(playerNames, plr.Name)
+    end
+end
+if #playerNames == 0 then playerNames = {"No players"} end
+
+local playerDropdown = gui:CreateDropdown(trollingTab, "Target", playerNames, function(v)
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr.Name == v then
             selectedPlayer = plr
@@ -1048,13 +1131,13 @@ local playerDropdown = gui:CreateDropdown(trollingTab, "Target", {"Select Player
     end
 end)
 
-gui:CreateButton(trollingTab, "🎯 Fling Selected Player", function()
+gui:CreateButton(trollingTab, "🎯 Fling Selected", function()
     if selectedPlayer then
         local success = Trolling:flingPlayer(selectedPlayer)
         if success then
-            print("Successfully flung " .. selectedPlayer.Name)
+            print("Successfully flung " .. selectedPlayer.Name .. "!")
         else
-            warn("Failed to fling " .. selectedPlayer.Name)
+            warn("Failed to fling " .. selectedPlayer.Name .. "!")
         end
     else
         warn("No player selected!")
@@ -1066,8 +1149,12 @@ gui:CreateSection(settingsTab, "General")
 gui:CreateToggle(settingsTab, "Team Check", function(v) Config.TeamCheck = v end)
 gui:CreateButton(settingsTab, "Unload Script", function()
     ESP:Stop()
+    if FOVCircle then FOVCircle:Remove() end
     if gui.Window then gui.Window:Destroy() end
 end)
+
+-- Initialize FOV Circle
+Aimbot:CreateFOVCircle()
 
 -- Main Loop
 RunService.RenderStepped:Connect(function()
@@ -1090,8 +1177,5 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
--- Initialize FOV Circle
-Aimbot:CreateFOVCircle()
-
-print("MM2 Script v1.1 Loaded!")
+print("MM2 Script v1.2 Loaded!")
 print("Press RightShift to toggle menu")
