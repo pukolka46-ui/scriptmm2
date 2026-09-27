@@ -1,5 +1,5 @@
 --[[
-    MM2 Script v2.1
+    MM2 Script v3.0
     Murder Mystery 2 GUI Script
     
     Injection:
@@ -13,31 +13,28 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- ==================== CONFIG ====================
 local Config = {
-    -- Aimbot
     AimbotEnabled = false,
     AimbotFOV = 150,
     AimbotSmooth = 5,
     SilentAim = false,
     ShowFOV = false,
+    Wallbang = false,
     
-    -- Visuals
-    ESPEnabled = false,
-    TracersEnabled = false,
     BoxEnabled = false,
+    TracersEnabled = false,
     NameTags = false,
     Distance = 1000,
     ChamsGun = false,
     ChamsPlayer = false,
     ChamsSky = false,
     
-    -- Rage
     SpinEnabled = false,
     SpinSpeed = 50,
     
-    -- Movement
     SpeedEnabled = false,
     SpeedValue = 16,
     InfJumpEnabled = false,
@@ -45,29 +42,34 @@ local Config = {
     FlyEnabled = false,
     FlySpeed = 100,
     NoclipEnabled = false,
-    InvisibleEnabled = false,
     
-    -- Settings
+    KnifeSkin = "Default",
+    GunSkin = "Default",
+    
+    FPSBoost = false,
+    Optimization = false,
+    
     TeamCheck = true,
     MenuKey = Enum.KeyCode.RightShift
 }
 
--- ==================== THEME ====================
+-- ==================== THEME (Dark-White) ====================
 local Theme = {
-    Background = Color3.fromRGB(18, 18, 18),
-    Sidebar = Color3.fromRGB(25, 25, 25),
+    Background = Color3.fromRGB(25, 25, 25),
+    Sidebar = Color3.fromRGB(20, 20, 20),
     SidebarButton = Color3.fromRGB(35, 35, 35),
     SidebarButtonHover = Color3.fromRGB(45, 45, 45),
-    SidebarButtonActive = Color3.fromRGB(255, 65, 65),
+    SidebarButtonActive = Color3.fromRGB(255, 255, 255),
     Content = Color3.fromRGB(30, 30, 30),
     Text = Color3.fromRGB(255, 255, 255),
-    TextMuted = Color3.fromRGB(140, 140, 140),
-    Accent = Color3.fromRGB(255, 65, 65),
-    ToggleOff = Color3.fromRGB(50, 50, 50),
-    ToggleOn = Color3.fromRGB(255, 65, 65),
-    SliderBar = Color3.fromRGB(40, 40, 40),
-    SliderFill = Color3.fromRGB(255, 65, 65),
-    ButtonBackground = Color3.fromRGB(255, 65, 65),
+    TextMuted = Color3.fromRGB(150, 150, 150),
+    Accent = Color3.fromRGB(255, 255, 255),
+    ToggleOff = Color3.fromRGB(40, 40, 40),
+    ToggleOn = Color3.fromRGB(255, 255, 255),
+    SliderBar = Color3.fromRGB(35, 35, 35),
+    SliderFill = Color3.fromRGB(255, 255, 255),
+    ButtonBackground = Color3.fromRGB(255, 255, 255),
+    ButtonText = Color3.fromRGB(25, 25, 25),
 }
 
 -- ==================== GUI ====================
@@ -78,6 +80,7 @@ function GUI.new(title, size)
     local self = setmetatable({}, GUI)
     self.Tabs = {}
     self.ActiveTab = nil
+    self.Visible = true
     
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "MM2_GUI"
@@ -94,13 +97,13 @@ function GUI.new(title, size)
     mainFrame.Parent = screenGui
     
     local mainCorner = Instance.new("UICorner")
-    mainCorner.CornerRadius = UDim.new(0, 16)
+    mainCorner.CornerRadius = UDim.new(0, 8)
     mainCorner.Parent = mainFrame
     
     local borderGradient = Instance.new("UIStroke")
     borderGradient.Color = Theme.Accent
-    borderGradient.Thickness = 2
-    borderGradient.Transparency = 0.5
+    borderGradient.Thickness = 1
+    borderGradient.Transparency = 0.8
     borderGradient.Parent = mainFrame
     
     local sidebar = Instance.new("Frame")
@@ -110,7 +113,7 @@ function GUI.new(title, size)
     sidebar.Parent = mainFrame
     
     local sidebarCorner = Instance.new("UICorner")
-    sidebarCorner.CornerRadius = UDim.new(0, 16)
+    sidebarCorner.CornerRadius = UDim.new(0, 8)
     sidebarCorner.Parent = sidebar
     
     local sidebarFix = Instance.new("Frame")
@@ -121,8 +124,8 @@ function GUI.new(title, size)
     sidebarFix.Parent = sidebar
     
     local accentLine = Instance.new("Frame")
-    accentLine.Size = UDim2.new(0, 3, 1, 0)
-    accentLine.Position = UDim2.new(1, -3, 0, 0)
+    accentLine.Size = UDim2.new(0, 2, 1, 0)
+    accentLine.Position = UDim2.new(1, -2, 0, 0)
     accentLine.BackgroundColor3 = Theme.Accent
     accentLine.BorderSizePixel = 0
     accentLine.Parent = sidebar
@@ -140,7 +143,7 @@ function GUI.new(title, size)
     logoSubtitle.Size = UDim2.new(1, 0, 0, 20)
     logoSubtitle.Position = UDim2.new(0, 0, 0, 50)
     logoSubtitle.BackgroundTransparency = 1
-    logoSubtitle.Text = "SCRIPT"
+    logoSubtitle.Text = "v3.0"
     logoSubtitle.TextColor3 = Theme.TextMuted
     logoSubtitle.Font = Enum.Font.GothamBold
     logoSubtitle.TextSize = 10
@@ -153,7 +156,7 @@ function GUI.new(title, size)
     buttonsContainer.Parent = sidebar
     
     local buttonsList = Instance.new("UIListLayout")
-    buttonsList.Padding = UDim.new(0, 6)
+    buttonsList.Padding = UDim.new(0, 5)
     buttonsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
     buttonsList.Parent = buttonsContainer
     
@@ -165,78 +168,56 @@ function GUI.new(title, size)
     contentArea.Parent = mainFrame
     
     local header = Instance.new("Frame")
-    header.Size = UDim2.new(1, 0, 0, 55)
+    header.Size = UDim2.new(1, 0, 0, 50)
     header.BackgroundColor3 = Theme.Background
     header.BorderSizePixel = 0
     header.Parent = contentArea
     
     local headerTitle = Instance.new("TextLabel")
     headerTitle.Size = UDim2.new(1, -80, 1, 0)
-    headerTitle.Position = UDim2.new(0, 25, 0, 0)
+    headerTitle.Position = UDim2.new(0, 20, 0, 0)
     headerTitle.BackgroundTransparency = 1
     headerTitle.Text = title or "MM2 Script"
     headerTitle.TextColor3 = Theme.Text
     headerTitle.Font = Enum.Font.GothamBold
-    headerTitle.TextSize = 22
+    headerTitle.TextSize = 20
     headerTitle.TextXAlignment = Enum.TextXAlignment.Left
     headerTitle.Parent = header
     
-    local headerSubtitle = Instance.new("TextLabel")
-    headerSubtitle.Size = UDim2.new(1, -80, 0, 20)
-    headerSubtitle.Position = UDim2.new(0, 25, 0, 30)
-    headerSubtitle.BackgroundTransparency = 1
-    headerSubtitle.Text = "v2.1 | Made with ❤"
-    headerSubtitle.TextColor3 = Theme.TextMuted
-    headerSubtitle.Font = Enum.Font.Gotham
-    headerSubtitle.TextSize = 11
-    headerSubtitle.TextXAlignment = Enum.TextXAlignment.Left
-    headerSubtitle.Parent = header
-    
     local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 35, 0, 35)
-    closeBtn.Position = UDim2.new(1, -50, 0.5, -17)
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -45, 0.5, -15)
     closeBtn.BackgroundColor3 = Theme.SidebarButton
-    closeBtn.Text = "✕"
+    closeBtn.Text = "×"
     closeBtn.TextColor3 = Theme.Accent
     closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 18
+    closeBtn.TextSize = 20
     closeBtn.AutoButtonColor = false
     closeBtn.Parent = header
     
     local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 10)
+    closeCorner.CornerRadius = UDim.new(0, 8)
     closeCorner.Parent = closeBtn
     
     local contentFrame = Instance.new("Frame")
-    contentFrame.Size = UDim2.new(1, -50, 1, -80)
-    contentFrame.Position = UDim2.new(0, 25, 0, 60)
+    contentFrame.Size = UDim2.new(1, -40, 1, -70)
+    contentFrame.Position = UDim2.new(0, 20, 0, 55)
     contentFrame.BackgroundColor3 = Theme.Content
     contentFrame.BorderSizePixel = 0
     contentFrame.Parent = contentArea
     
     local contentCorner = Instance.new("UICorner")
-    contentCorner.CornerRadius = UDim.new(0, 12)
+    contentCorner.CornerRadius = UDim.new(0, 8)
     contentCorner.Parent = contentFrame
     
     self.Window = screenGui
     self.MainFrame = mainFrame
     self.ButtonsContainer = buttonsContainer
     self.ContentFrame = contentFrame
-    self.Visible = true
     
-    closeBtn.MouseButton1Click:Connect(function()
-        self:Toggle()
-    end)
-    
-    closeBtn.MouseEnter:Connect(function()
-        closeBtn.BackgroundColor3 = Theme.Accent
-        closeBtn.TextColor3 = Theme.Text
-    end)
-    
-    closeBtn.MouseLeave:Connect(function()
-        closeBtn.BackgroundColor3 = Theme.SidebarButton
-        closeBtn.TextColor3 = Theme.Accent
-    end)
+    closeBtn.MouseButton1Click:Connect(function() self:Toggle() end)
+    closeBtn.MouseEnter:Connect(function() closeBtn.BackgroundColor3 = Theme.Accent closeBtn.TextColor3 = Theme.Sidebar end)
+    closeBtn.MouseLeave:Connect(function() closeBtn.BackgroundColor3 = Theme.SidebarButton closeBtn.TextColor3 = Theme.Accent end)
     
     local dragging = false
     local dragStart, startPos
@@ -258,12 +239,7 @@ function GUI.new(title, size)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragStart
-            mainFrame.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
     
@@ -277,32 +253,30 @@ function GUI:Toggle()
 end
 
 function GUI:CreateTab(name, icon)
-    local iconText = icon or "●"
-    
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 65, 0, 50)
+    btn.Size = UDim2.new(0, 65, 0, 45)
     btn.BackgroundColor3 = Theme.SidebarButton
     btn.Text = ""
     btn.AutoButtonColor = false
     btn.Parent = self.ButtonsContainer
     
     local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 10)
+    btnCorner.CornerRadius = UDim.new(0, 8)
     btnCorner.Parent = btn
     
     local iconLabel = Instance.new("TextLabel")
-    iconLabel.Size = UDim2.new(1, 0, 0, 24)
-    iconLabel.Position = UDim2.new(0, 0, 0, 6)
+    iconLabel.Size = UDim2.new(1, 0, 0, 22)
+    iconLabel.Position = UDim2.new(0, 0, 0, 5)
     iconLabel.BackgroundTransparency = 1
-    iconLabel.Text = iconText
+    iconLabel.Text = icon or "●"
     iconLabel.TextColor3 = Theme.TextMuted
     iconLabel.Font = Enum.Font.GothamMedium
-    iconLabel.TextSize = 18
+    iconLabel.TextSize = 16
     iconLabel.Parent = btn
     
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, -4, 0, 16)
-    nameLabel.Position = UDim2.new(0, 2, 1, -20)
+    nameLabel.Size = UDim2.new(1, -4, 0, 14)
+    nameLabel.Position = UDim2.new(0, 2, 1, -18)
     nameLabel.BackgroundTransparency = 1
     nameLabel.Text = name
     nameLabel.TextColor3 = Theme.TextMuted
@@ -311,8 +285,8 @@ function GUI:CreateTab(name, icon)
     nameLabel.Parent = btn
     
     local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Size = UDim2.new(1, -24, 1, -24)
-    scrollFrame.Position = UDim2.new(0, 12, 0, 12)
+    scrollFrame.Size = UDim2.new(1, -20, 1, -20)
+    scrollFrame.Position = UDim2.new(0, 10, 0, 10)
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.BorderSizePixel = 0
     scrollFrame.ScrollBarThickness = 4
@@ -322,41 +296,17 @@ function GUI:CreateTab(name, icon)
     scrollFrame.Parent = self.ContentFrame
     
     local listLayout = Instance.new("UIListLayout")
-    listLayout.Padding = UDim.new(0, 8)
+    listLayout.Padding = UDim.new(0, 6)
     listLayout.Parent = scrollFrame
     
-    local padding = Instance.new("UIPadding")
-    padding.PaddingBottom = UDim.new(0, 10)
-    padding.Parent = scrollFrame
+    local tab = {Button = btn, Icon = iconLabel, Name = nameLabel, Content = scrollFrame}
     
-    local tab = {
-        Button = btn,
-        Icon = iconLabel,
-        Name = nameLabel,
-        Content = scrollFrame
-    }
-    
-    btn.MouseEnter:Connect(function()
-        if self.ActiveTab ~= tab then
-            btn.BackgroundColor3 = Theme.SidebarButtonHover
-        end
-    end)
-    
-    btn.MouseLeave:Connect(function()
-        if self.ActiveTab ~= tab then
-            btn.BackgroundColor3 = Theme.SidebarButton
-        end
-    end)
-    
-    btn.MouseButton1Click:Connect(function()
-        self:SetActiveTab(tab)
-    end)
+    btn.MouseEnter:Connect(function() if self.ActiveTab ~= tab then btn.BackgroundColor3 = Theme.SidebarButtonHover end end)
+    btn.MouseLeave:Connect(function() if self.ActiveTab ~= tab then btn.BackgroundColor3 = Theme.SidebarButton end end)
+    btn.MouseButton1Click:Connect(function() self:SetActiveTab(tab) end)
     
     table.insert(self.Tabs, tab)
-    
-    if #self.Tabs == 1 then
-        self:SetActiveTab(tab)
-    end
+    if #self.Tabs == 1 then self:SetActiveTab(tab) end
     
     return scrollFrame
 end
@@ -371,66 +321,66 @@ function GUI:SetActiveTab(tab)
     
     tab.Content.Visible = true
     tab.Button.BackgroundColor3 = Theme.SidebarButtonActive
-    tab.Icon.TextColor3 = Theme.Text
-    tab.Name.TextColor3 = Theme.Text
+    tab.Icon.TextColor3 = Theme.Sidebar
+    tab.Name.TextColor3 = Theme.Sidebar
     self.ActiveTab = tab
 end
 
 function GUI:CreateSection(tab, text)
     local section = Instance.new("TextLabel")
-    section.Size = UDim2.new(1, 0, 0, 30)
+    section.Size = UDim2.new(1, 0, 0, 25)
     section.BackgroundTransparency = 1
     section.Text = "  " .. text
     section.TextColor3 = Theme.Accent
     section.Font = Enum.Font.GothamBold
-    section.TextSize = 14
+    section.TextSize = 13
     section.TextXAlignment = Enum.TextXAlignment.Left
     section.Parent = tab
 end
 
 function GUI:CreateToggle(tab, text, callback)
     local toggleFrame = Instance.new("Frame")
-    toggleFrame.Size = UDim2.new(1, 0, 0, 42)
+    toggleFrame.Size = UDim2.new(1, 0, 0, 38)
     toggleFrame.BackgroundColor3 = Theme.SidebarButton
     toggleFrame.BorderSizePixel = 0
     toggleFrame.Parent = tab
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
+    corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = toggleFrame
     
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -70, 1, 0)
-    label.Position = UDim2.new(0, 15, 0, 0)
+    label.Size = UDim2.new(1, -65, 1, 0)
+    label.Position = UDim2.new(0, 12, 0, 0)
     label.BackgroundTransparency = 1
     label.Text = text
     label.TextColor3 = Theme.Text
     label.Font = Enum.Font.GothamMedium
-    label.TextSize = 13
+    label.TextSize = 12
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = toggleFrame
     
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 45, 0, 24)
-    btn.Position = UDim2.new(1, -57, 0.5, -12)
+    btn.Size = UDim2.new(0, 42, 0, 22)
+    btn.Position = UDim2.new(1, -52, 0.5, -11)
     btn.BackgroundColor3 = Theme.ToggleOff
     btn.Text = ""
     btn.AutoButtonColor = false
     btn.Parent = toggleFrame
     
     local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 12)
+    btnCorner.CornerRadius = UDim.new(0, 11)
     btnCorner.Parent = btn
     
     local circle = Instance.new("Frame")
-    circle.Size = UDim2.new(0, 18, 0, 18)
-    circle.Position = UDim2.new(0, 3, 0.5, -9)
+    circle.Size = UDim2.new(0, 16, 0, 16)
+    circle.Position = UDim2.new(0, 3, 0.5, -8)
     circle.BackgroundColor3 = Theme.TextMuted
     circle.BorderSizePixel = 0
     circle.Parent = btn
     
     local circleCorner = Instance.new("UICorner")
-    circleCorner.CornerRadius = UDim.new(0, 9)
+    circleCorner.CornerRadius = UDim.new(0, 8)
     circleCorner.Parent = circle
     
     local enabled = false
@@ -439,49 +389,44 @@ function GUI:CreateToggle(tab, text, callback)
         enabled = value
         if enabled then
             TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Theme.ToggleOn}):Play()
-            TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 24, 0.5, -9), BackgroundColor3 = Theme.Text}):Play()
+            TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 23, 0.5, -8), BackgroundColor3 = Theme.Sidebar}):Play()
         else
             TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Theme.ToggleOff}):Play()
-            TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 3, 0.5, -9), BackgroundColor3 = Theme.TextMuted}):Play()
+            TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 3, 0.5, -8), BackgroundColor3 = Theme.TextMuted}):Play()
         end
         callback(enabled)
     end
     
-    btn.MouseButton1Click:Connect(function()
-        setToggle(not enabled)
-    end)
+    btn.MouseButton1Click:Connect(function() setToggle(not enabled) end)
     
-    return {
-        SetValue = setToggle,
-        GetValue = function() return enabled end
-    }
+    return {SetValue = setToggle, GetValue = function() return enabled end}
 end
 
 function GUI:CreateSlider(tab, text, min, max, callback)
     local sliderFrame = Instance.new("Frame")
-    sliderFrame.Size = UDim2.new(1, 0, 0, 55)
+    sliderFrame.Size = UDim2.new(1, 0, 0, 50)
     sliderFrame.BackgroundColor3 = Theme.SidebarButton
     sliderFrame.BorderSizePixel = 0
     sliderFrame.Parent = tab
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
+    corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = sliderFrame
     
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -20, 0, 18)
-    label.Position = UDim2.new(0, 15, 0, 8)
+    label.Size = UDim2.new(1, -20, 0, 16)
+    label.Position = UDim2.new(0, 12, 0, 8)
     label.BackgroundTransparency = 1
     label.Text = text .. ": " .. tostring(min)
     label.TextColor3 = Theme.Text
     label.Font = Enum.Font.GothamMedium
-    label.TextSize = 13
+    label.TextSize = 12
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = sliderFrame
     
     local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(1, -30, 0, 6)
-    bar.Position = UDim2.new(0, 15, 1, -22)
+    bar.Size = UDim2.new(1, -24, 0, 5)
+    bar.Position = UDim2.new(0, 12, 1, -20)
     bar.BackgroundColor3 = Theme.SliderBar
     bar.BorderSizePixel = 0
     bar.Parent = sliderFrame
@@ -533,80 +478,64 @@ function GUI:CreateSlider(tab, text, min, max, callback)
         end
     end)
     
-    return {
-        SetValue = function(v)
-            value = v
-            local percent = (v - min) / (max - min)
-            fill.Size = UDim2.new(percent, 0, 1, 0)
-            label.Text = text .. ": " .. tostring(v)
-        end,
-        GetValue = function() return value end
-    }
+    return {SetValue = function(v) value = v fill.Size = UDim2.new((v - min) / (max - min), 0, 1, 0) label.Text = text .. ": " .. tostring(v) end, GetValue = function() return value end}
 end
 
 function GUI:CreateButton(tab, text, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.Size = UDim2.new(1, 0, 0, 36)
     btn.BackgroundColor3 = Theme.ButtonBackground
     btn.Text = text
-    btn.TextColor3 = Theme.Text
+    btn.TextColor3 = Theme.ButtonText
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 13
+    btn.TextSize = 12
     btn.AutoButtonColor = false
     btn.Parent = tab
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
+    corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = btn
     
-    btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(255, 85, 85)}):Play()
-    end)
-    
-    btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Theme.ButtonBackground}):Play()
-    end)
-    
-    btn.MouseButton1Click:Connect(function()
-        callback()
-    end)
+    btn.MouseEnter:Connect(function() TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(230, 230, 230)}):Play() end)
+    btn.MouseLeave:Connect(function() TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Theme.ButtonBackground}):Play() end)
+    btn.MouseButton1Click:Connect(function() callback() end)
 end
 
 function GUI:CreateDropdown(tab, text, options, callback)
     local dropdownFrame = Instance.new("Frame")
-    dropdownFrame.Size = UDim2.new(1, 0, 0, 42)
+    dropdownFrame.Size = UDim2.new(1, 0, 0, 38)
     dropdownFrame.BackgroundColor3 = Theme.SidebarButton
     dropdownFrame.BorderSizePixel = 0
     dropdownFrame.Parent = tab
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
+    corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = dropdownFrame
     
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(0.4, 0, 1, 0)
-    label.Position = UDim2.new(0, 15, 0, 0)
+    label.Position = UDim2.new(0, 12, 0, 0)
     label.BackgroundTransparency = 1
     label.Text = text
     label.TextColor3 = Theme.Text
     label.Font = Enum.Font.GothamMedium
-    label.TextSize = 13
+    label.TextSize = 12
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = dropdownFrame
     
     local dropdownBtn = Instance.new("TextButton")
-    dropdownBtn.Size = UDim2.new(0.5, -20, 0, 26)
-    dropdownBtn.Position = UDim2.new(0.5, 0, 0.5, -13)
+    dropdownBtn.Size = UDim2.new(0.5, -20, 0, 24)
+    dropdownBtn.Position = UDim2.new(0.5, 0, 0.5, -12)
     dropdownBtn.BackgroundColor3 = Theme.Background
     dropdownBtn.Text = options[1] or "Select..."
     dropdownBtn.TextColor3 = Theme.Text
     dropdownBtn.Font = Enum.Font.GothamMedium
-    dropdownBtn.TextSize = 12
+    dropdownBtn.TextSize = 11
     dropdownBtn.AutoButtonColor = false
     dropdownBtn.Parent = dropdownFrame
     
     local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.CornerRadius = UDim.new(0, 6)
     btnCorner.Parent = dropdownBtn
     
     local selectedOption = options[1]
@@ -619,17 +548,71 @@ function GUI:CreateDropdown(tab, text, options, callback)
         callback(selectedOption)
     end)
     
-    return {
-        SetValue = function(value)
-            selectedOption = value
-            dropdownBtn.Text = value
-            callback(value)
-        end,
-        GetValue = function() return selectedOption end
-    }
+    return {SetValue = function(value) selectedOption = value dropdownBtn.Text = value callback(value) end, GetValue = function() return selectedOption end}
 end
 
--- ==================== CHAMS MODULE ====================
+-- ==================== SKIN CHANGER ====================
+local SkinChanger = {}
+SkinChanger.KnifeSkins = {"Default", "Heat", "Chroma Heat", "Seer", "Chroma Seer", "Elderwood", "Icebeam", "Laser", "Prismatic", "Chroma Prismatic", "Biograft", "Chroma Biograft", "Batwing", "Ghost", "Phantom", "Crimson", "Nik's Scythe", "Sparkle Time", "Iceflake", "Hallow's Edge", "Eternal", "Hallow's Blade", "GhostKnife"}
+SkinChanger.GunSkins = {"Default", "Laser", "Chroma Laser", "Elderwood", "Icebeam", "Seer", "Chroma Seer", "Prismatic", "Chroma Prismatic", "Revolver", "Pixel", "Turkey", "America", "Sparkle Time", "GhostGun"}
+
+function SkinChanger:ApplySkin()
+    local char = Players.LocalPlayer.Character
+    if not char then return end
+    
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") then
+            local toolName = tool.Name:lower()
+            
+            if toolName:find("knife") and Config.KnifeSkin ~= "Default" then
+                local skinName = Config.KnifeSkin:gsub(" ", "")
+                local remote = ReplicatedStorage:FindFirstChild("Spawn" .. skinName)
+                if remote then remote:FireServer() end
+            elseif (toolName:find("gun") or toolName:find("pistol") or toolName:find("revolver")) and Config.GunSkin ~= "Default" then
+                local skinName = Config.GunSkin:gsub(" ", "")
+                local remote = ReplicatedStorage:FindFirstChild("Spawn" .. skinName)
+                if remote then remote:FireServer() end
+            end
+        end
+    end
+end
+
+-- ==================== OPTIMIZATION ====================
+local Optimization = {}
+
+function Optimization:FPSBoost()
+    if Config.FPSBoost then
+        settings().Rendering.QualityLevel = 1
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 100000
+        Lighting.Brightness = 2
+        
+        for _, effect in ipairs(Lighting:GetChildren()) do
+            if effect:IsA("PostEffect") then effect.Enabled = false end
+        end
+    else
+        settings().Rendering.QualityLevel = 3
+        Lighting.GlobalShadows = true
+    end
+end
+
+function Optimization:FullOptimization()
+    if Config.Optimization then
+        for _, v in ipairs(Workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
+                v.Enabled = false
+            end
+        end
+        
+        settings().Rendering.QualityLevel = 1
+        UserSettings():GetService("UserGameSettings").SavedQualityLevel = 1
+    else
+        settings().Rendering.QualityLevel = 3
+        UserSettings():GetService("UserGameSettings").SavedQualityLevel = 10
+    end
+end
+
+-- ==================== CHAMS ====================
 local Chams = {}
 Chams.Highlights = {}
 
@@ -665,7 +648,6 @@ function Chams:ApplyPlayerChams()
             local highlight = Instance.new("Highlight")
             highlight.Name = "PlayerChams"
             
-            -- Color based on role
             local function getRoleColor()
                 local char = plr.Character
                 if not char then return Color3.fromRGB(200, 200, 200) end
@@ -723,32 +705,21 @@ end
 
 function Chams:RemoveChams()
     for _, highlight in ipairs(self.Highlights) do
-        if highlight and highlight.Parent then
-            highlight:Destroy()
-        end
+        if highlight and highlight.Parent then highlight:Destroy() end
     end
     self.Highlights = {}
     
-    -- Remove sky chams
     local skyChams = Lighting:FindFirstChild("SkyChams")
     if skyChams then skyChams:Destroy() end
 end
 
 function Chams:Run()
-    if Config.ChamsGun then
-        self:ApplyGunChams()
-    end
-    
-    if Config.ChamsPlayer then
-        self:ApplyPlayerChams()
-    end
-    
-    if Config.ChamsSky then
-        self:ApplySkyChams()
-    end
+    if Config.ChamsGun then self:ApplyGunChams() end
+    if Config.ChamsPlayer then self:ApplyPlayerChams() end
+    if Config.ChamsSky then self:ApplySkyChams() end
 end
 
--- ==================== ESP MODULE ====================
+-- ==================== ESP ====================
 local ESP = {Drawings = {}}
 
 function ESP:getRoleColor(player)
@@ -796,30 +767,27 @@ function ESP:Run()
                 if root and humanoid and humanoid.Health > 0 then
                     local dist = (root.Position - localRoot.Position).Magnitude
                     if dist <= Config.Distance then
-                        -- Box - FIXED: Properly centered on body
+                        -- Box - FIXED: Proper calculation
                         if Config.BoxEnabled then
                             local key = "box_" .. plr.UserId
                             table.insert(activeKeys, key)
                             
-                            -- Get actual character parts
                             local head = char:FindFirstChild("Head")
-                            local leftLeg = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLowerLeg")
-                            local rightLeg = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightLowerLeg")
                             local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
                             
-                            -- Calculate exact bounds
-                            local topY = head and (head.Position.Y + 0.5) or (root.Position.Y + 2.5)
-                            local bottomY = (leftLeg or rightLeg) and ((leftLeg or rightLeg).Position.Y - 0.5) or (root.Position.Y - 2.5)
+                            local height = 5
+                            if head and torso then height = (head.Position.Y - torso.Position.Y) + 2.5 end
                             
-                            local topPos = Vector3.new(root.Position.X, topY, root.Position.Z)
-                            local bottomPos = Vector3.new(root.Position.X, bottomY, root.Position.Z)
+                            local centerPos = root.Position
+                            local topPos = centerPos + Vector3.new(0, height / 2 - 1, 0)
+                            local bottomPos = centerPos - Vector3.new(0, height / 2 - 1, 0)
                             
                             local topScreen, topOnScreen = camera:WorldToScreenPoint(topPos)
                             local bottomScreen, bottomOnScreen = camera:WorldToScreenPoint(bottomPos)
                             
                             if topOnScreen and bottomOnScreen then
-                                local height = math.abs(bottomScreen.Y - topScreen.Y)
-                                local width = height * 0.5
+                                local boxHeight = math.abs(bottomScreen.Y - topScreen.Y)
+                                local boxWidth = boxHeight * 0.6
                                 
                                 if not self.Drawings[key] then
                                     self.Drawings[key] = Drawing.new("Square")
@@ -828,8 +796,8 @@ function ESP:Run()
                                 end
                                 
                                 self.Drawings[key].Visible = true
-                                self.Drawings[key].Size = Vector2.new(width, height)
-                                self.Drawings[key].Position = Vector2.new(topScreen.X - width / 2, topScreen.Y)
+                                self.Drawings[key].Size = Vector2.new(boxWidth, boxHeight)
+                                self.Drawings[key].Position = Vector2.new(topScreen.X - boxWidth / 2, topScreen.Y)
                                 self.Drawings[key].Color = self:getRoleColor(plr)
                             elseif self.Drawings[key] then
                                 self.Drawings[key].Visible = false
@@ -903,7 +871,6 @@ function ESP:Run()
         end
     end
     
-    -- Clean up
     for key, drawing in pairs(self.Drawings) do
         if drawing and not table.find(activeKeys, key) then
             drawing:Remove()
@@ -919,7 +886,7 @@ function ESP:Stop()
     self.Drawings = {}
 end
 
--- ==================== TROLLING MODULE ====================
+-- ==================== TROLLING ====================
 local Trolling = {}
 
 function Trolling:findMurder()
@@ -929,9 +896,7 @@ function Trolling:findMurder()
             if char then
                 local function hasKnife(container)
                     for _, item in ipairs(container:GetChildren()) do
-                        if item:IsA("Tool") and item.Name:lower():find("knife") then
-                            return true
-                        end
+                        if item:IsA("Tool") and item.Name:lower():find("knife") then return true end
                     end
                     return false
                 end
@@ -954,9 +919,7 @@ function Trolling:findSheriff()
                     for _, item in ipairs(container:GetChildren()) do
                         if item:IsA("Tool") then
                             local name = item.Name:lower()
-                            if name:find("gun") or name:find("pistol") or name:find("revolver") then
-                                return true
-                            end
+                            if name:find("gun") or name:find("pistol") or name:find("revolver") then return true end
                         end
                     end
                     return false
@@ -1029,44 +992,33 @@ end
 
 function Trolling:flingMurder()
     local murder = self:findMurder()
-    if murder then
-        return self:flingPlayer(murder)
-    end
+    if murder then return self:flingPlayer(murder) end
     return false
 end
 
 function Trolling:flingSheriff()
     local sheriff = self:findSheriff()
-    if sheriff then
-        return self:flingPlayer(sheriff)
-    end
+    if sheriff then return self:flingPlayer(sheriff) end
     return false
 end
 
--- ==================== MOVEMENT MODULE ====================
+-- ==================== MOVEMENT ====================
 local Movement = {}
-Movement.Connections = {}
 Movement.FlyConnection = nil
 Movement.NoclipConnection = nil
 
 function Movement:UpdateSpeed()
-    local localPlayer = Players.LocalPlayer
-    local char = localPlayer.Character
+    local char = Players.LocalPlayer.Character
     if not char then return end
     
     local humanoid = char:FindFirstChild("Humanoid")
     if humanoid then
-        if Config.SpeedEnabled then
-            humanoid.WalkSpeed = Config.SpeedValue
-        else
-            humanoid.WalkSpeed = 16
-        end
+        humanoid.WalkSpeed = Config.SpeedEnabled and Config.SpeedValue or 16
     end
 end
 
 function Movement:UpdateJump()
-    local localPlayer = Players.LocalPlayer
-    local char = localPlayer.Character
+    local char = Players.LocalPlayer.Character
     if not char then return end
     
     local humanoid = char:FindFirstChild("Humanoid")
@@ -1075,25 +1027,8 @@ function Movement:UpdateJump()
     end
 end
 
-function Movement:InfiniteJump()
-    local localPlayer = Players.LocalPlayer
-    
-    UserInputService.JumpRequest:Connect(function()
-        if Config.InfJumpEnabled then
-            local char = localPlayer.Character
-            if char then
-                local humanoid = char:FindFirstChild("Humanoid")
-                if humanoid then
-                    humanoid:ChangeState("Jumping")
-                end
-            end
-        end
-    end)
-end
-
 function Movement:Fly()
-    local localPlayer = Players.LocalPlayer
-    local char = localPlayer.Character
+    local char = Players.LocalPlayer.Character
     if not char then return end
     
     local root = char:FindFirstChild("HumanoidRootPart")
@@ -1104,7 +1039,6 @@ function Movement:Fly()
         self.FlyConnection = nil
     end
     
-    -- Remove existing fly components
     local bodyVelocity = root:FindFirstChild("FlyVelocity")
     local bodyGyro = root:FindFirstChild("FlyGyro")
     if bodyVelocity then bodyVelocity:Destroy() end
@@ -1125,7 +1059,6 @@ function Movement:Fly()
         
         self.FlyConnection = RunService.RenderStepped:Connect(function()
             if not Config.FlyEnabled or not root or not root.Parent then
-                -- Clean up when disabled
                 if bodyVelocity and bodyVelocity.Parent then bodyVelocity:Destroy() end
                 if bodyGyro and bodyGyro.Parent then bodyGyro:Destroy() end
                 return
@@ -1134,24 +1067,12 @@ function Movement:Fly()
             local camera = Workspace.CurrentCamera
             local moveDir = Vector3.new(0, 0, 0)
             
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                moveDir = moveDir + camera.CFrame.LookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                moveDir = moveDir - camera.CFrame.LookVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                moveDir = moveDir - camera.CFrame.RightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                moveDir = moveDir + camera.CFrame.RightVector
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                moveDir = moveDir + Vector3.new(0, 1, 0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-                moveDir = moveDir - Vector3.new(0, 1, 0)
-            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0, 1, 0) end
             
             bodyVelocity.Velocity = moveDir * Config.FlySpeed
             bodyGyro.CFrame = camera.CFrame
@@ -1177,7 +1098,6 @@ function Movement:Noclip()
             end
         end)
     else
-        -- Re-enable collision
         local char = Players.LocalPlayer.Character
         if char then
             for _, part in ipairs(char:GetDescendants()) do
@@ -1189,28 +1109,7 @@ function Movement:Noclip()
     end
 end
 
-function Movement:Invisible()
-    local localPlayer = Players.LocalPlayer
-    local char = localPlayer.Character
-    if not char then return end
-    
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    
-    if Config.InvisibleEnabled then
-        local newRoot = root:Clone()
-        newRoot.Name = "HumanoidRootPart"
-        newRoot.Anchored = true
-        newRoot.Transparency = 1
-        
-        root:Destroy()
-        newRoot.Parent = char
-        
-        Workspace.CurrentCamera.CameraSubject = char:FindFirstChild("Humanoid")
-    end
-end
-
--- ==================== RAGE MODULE ====================
+-- ==================== RAGE ====================
 local Rage = {}
 Rage.SpinConnection = nil
 
@@ -1237,30 +1136,27 @@ function Rage:Spin()
     end
 end
 
--- ==================== AIMBOT MODULE ====================
+-- ==================== AIMBOT ====================
 local Aimbot = {}
 local FOVCircle = nil
 
 function Aimbot:CreateFOVCircle()
     if FOVCircle then FOVCircle:Remove() end
-    
     if not Config.ShowFOV then return end
     
     FOVCircle = Drawing.new("Circle")
     FOVCircle.Radius = Config.AimbotFOV
     FOVCircle.Filled = false
     FOVCircle.Thickness = 2
-    FOVCircle.Color = Color3.fromRGB(255, 65, 65)
+    FOVCircle.Color = Color3.fromRGB(255, 255, 255)
     FOVCircle.Transparency = 0.7
     FOVCircle.Visible = Config.ShowFOV
 end
 
 function Aimbot:UpdateFOVCircle()
-    if not FOVCircle then 
-        if Config.ShowFOV then
-            self:CreateFOVCircle()
-        end
-        return 
+    if not FOVCircle then
+        if Config.ShowFOV then self:CreateFOVCircle() end
+        return
     end
     
     if Config.ShowFOV then
@@ -1379,6 +1275,7 @@ local aimbotTab = gui:CreateTab("Aimbot", "🎯")
 local legitTab = gui:CreateTab("Legit", "🚀")
 local rageTab = gui:CreateTab("Rage", "💀")
 local trollingTab = gui:CreateTab("Trolling", "😈")
+local moreTab = gui:CreateTab("More", "⚡")
 local settingsTab = gui:CreateTab("Settings", "⚙")
 
 -- Visuals
@@ -1389,18 +1286,13 @@ gui:CreateToggle(visualsTab, "Name Tags", function(v) Config.NameTags = v end)
 gui:CreateSlider(visualsTab, "Max Distance", 100, 2000, function(v) Config.Distance = v end)
 
 gui:CreateSection(visualsTab, "Chams")
-gui:CreateToggle(visualsTab, "Gun Chams", function(v) 
-    Config.ChamsGun = v
-    if not v then Chams:RemoveChams() end
-end)
-gui:CreateToggle(visualsTab, "Player Chams", function(v) 
-    Config.ChamsPlayer = v
-    if not v then Chams:RemoveChams() end
-end)
-gui:CreateToggle(visualsTab, "Sky Chams", function(v) 
-    Config.ChamsSky = v
-    if not v then Chams:RemoveChams() end
-end)
+gui:CreateToggle(visualsTab, "Gun Chams", function(v) Config.ChamsGun = v if not v then Chams:RemoveChams() end end)
+gui:CreateToggle(visualsTab, "Player Chams", function(v) Config.ChamsPlayer = v if not v then Chams:RemoveChams() end end)
+gui:CreateToggle(visualsTab, "Sky Chams", function(v) Config.ChamsSky = v if not v then Chams:RemoveChams() end end)
+
+gui:CreateSection(visualsTab, "Skin Changer")
+gui:CreateDropdown(visualsTab, "Knife Skin", SkinChanger.KnifeSkins, function(v) Config.KnifeSkin = v SkinChanger:ApplySkin() end)
+gui:CreateDropdown(visualsTab, "Gun Skin", SkinChanger.GunSkins, function(v) Config.GunSkin = v SkinChanger:ApplySkin() end)
 
 -- Aimbot
 gui:CreateSection(aimbotTab, "Main")
@@ -1408,114 +1300,64 @@ gui:CreateToggle(aimbotTab, "Enable Aimbot", function(v) Config.AimbotEnabled = 
 gui:CreateToggle(aimbotTab, "Silent Aim (Gun)", function(v) Config.SilentAim = v end)
 
 gui:CreateSection(aimbotTab, "Settings")
-gui:CreateToggle(aimbotTab, "Show FOV Circle", function(v) 
-    Config.ShowFOV = v
-    Aimbot:CreateFOVCircle()
-end)
-gui:CreateSlider(aimbotTab, "FOV", 50, 300, function(v) 
-    Config.AimbotFOV = v
-end)
+gui:CreateToggle(aimbotTab, "Show FOV Circle", function(v) Config.ShowFOV = v Aimbot:CreateFOVCircle() end)
+gui:CreateSlider(aimbotTab, "FOV", 50, 300, function(v) Config.AimbotFOV = v end)
 gui:CreateSlider(aimbotTab, "Smooth", 1, 20, function(v) Config.AimbotSmooth = v end)
 
 -- Legit Movement
 gui:CreateSection(legitTab, "Movement")
-gui:CreateToggle(legitTab, "Speed Hack", function(v) 
-    Config.SpeedEnabled = v 
-    Movement:UpdateSpeed()
-end)
-gui:CreateSlider(legitTab, "Speed", 16, 200, function(v) 
-    Config.SpeedValue = v
-    Movement:UpdateSpeed()
-end)
-
-gui:CreateToggle(legitTab, "Infinite Jump", function(v) 
-    Config.InfJumpEnabled = v
-end)
-
-gui:CreateSlider(legitTab, "Jump Power", 10, 200, function(v) 
-    Config.JumpPower = v
-    Movement:UpdateJump()
-end)
-
-gui:CreateToggle(legitTab, "Fly", function(v) 
-    Config.FlyEnabled = v
-    Movement:Fly()
-end)
-gui:CreateSlider(legitTab, "Fly Speed", 50, 300, function(v) 
-    Config.FlySpeed = v
-end)
-
-gui:CreateToggle(legitTab, "Noclip", function(v) 
-    Config.NoclipEnabled = v
-    Movement:Noclip()
-end)
-
-gui:CreateToggle(legitTab, "Invisible", function(v) 
-    Config.InvisibleEnabled = v
-    Movement:Invisible()
-end)
+gui:CreateToggle(legitTab, "Speed Hack", function(v) Config.SpeedEnabled = v Movement:UpdateSpeed() end)
+gui:CreateSlider(legitTab, "Speed", 16, 200, function(v) Config.SpeedValue = v Movement:UpdateSpeed() end)
+gui:CreateToggle(legitTab, "Infinite Jump", function(v) Config.InfJumpEnabled = v end)
+gui:CreateSlider(legitTab, "Jump Power", 10, 200, function(v) Config.JumpPower = v Movement:UpdateJump() end)
+gui:CreateToggle(legitTab, "Fly", function(v) Config.FlyEnabled = v Movement:Fly() end)
+gui:CreateSlider(legitTab, "Fly Speed", 50, 300, function(v) Config.FlySpeed = v end)
+gui:CreateToggle(legitTab, "Noclip", function(v) Config.NoclipEnabled = v Movement:Noclip() end)
 
 -- Rage
 gui:CreateSection(rageTab, "Anti-Aim")
-gui:CreateToggle(rageTab, "Spin Bot", function(v) 
-    Config.SpinEnabled = v
-    Rage:Spin()
-end)
-gui:CreateSlider(rageTab, "Spin Speed", 10, 200, function(v) 
-    Config.SpinSpeed = v
-end)
+gui:CreateToggle(rageTab, "Spin Bot", function(v) Config.SpinEnabled = v Rage:Spin() end)
+gui:CreateSlider(rageTab, "Spin Speed", 10, 200, function(v) Config.SpinSpeed = v end)
+
+gui:CreateSection(rageTab, "Exploits")
+gui:CreateToggle(rageTab, "Wallbang (Shoot Through Walls)", function(v) Config.Wallbang = v end)
 
 -- Trolling
 gui:CreateSection(trollingTab, "Fling")
 gui:CreateButton(trollingTab, "🔥 Fling Murder", function()
     local success = Trolling:flingMurder()
-    if success then
-        print("Successfully flung Murder!")
-    else
-        warn("Failed to fling Murder!")
-    end
+    if success then print("Flinged Murder!") else warn("Failed!") end
 end)
-
 gui:CreateButton(trollingTab, "🔫 Fling Sheriff", function()
     local success = Trolling:flingSheriff()
-    if success then
-        print("Successfully flung Sheriff!")
-    else
-        warn("Failed to fling Sheriff!")
-    end
+    if success then print("Flinged Sheriff!") else warn("Failed!") end
 end)
 
 gui:CreateSection(trollingTab, "Player Selection")
 local selectedPlayer = nil
 local playerNames = {}
 for _, plr in ipairs(Players:GetPlayers()) do
-    if plr ~= LocalPlayer then
-        table.insert(playerNames, plr.Name)
-    end
+    if plr ~= LocalPlayer then table.insert(playerNames, plr.Name) end
 end
 if #playerNames == 0 then playerNames = {"No players"} end
 
 local playerDropdown = gui:CreateDropdown(trollingTab, "Target", playerNames, function(v)
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr.Name == v then
-            selectedPlayer = plr
-            break
-        end
+        if plr.Name == v then selectedPlayer = plr break end
     end
 end)
 
 gui:CreateButton(trollingTab, "🎯 Fling Selected", function()
     if selectedPlayer then
         local success = Trolling:flingPlayer(selectedPlayer)
-        if success then
-            print("Successfully flung " .. selectedPlayer.Name .. "!")
-        else
-            warn("Failed to fling " .. selectedPlayer.Name .. "!")
-        end
-    else
-        warn("No player selected!")
+        if success then print("Flinged " .. selectedPlayer.Name) else warn("Failed!") end
     end
 end)
+
+-- More
+gui:CreateSection(moreTab, "Optimization")
+gui:CreateToggle(moreTab, "FPS Boost", function(v) Config.FPSBoost = v Optimization:FPSBoost() end)
+gui:CreateToggle(moreTab, "Full Optimization", function(v) Config.Optimization = v Optimization:FullOptimization() end)
 
 -- Settings
 gui:CreateSection(settingsTab, "General")
@@ -1528,23 +1370,43 @@ gui:CreateButton(settingsTab, "Unload Script", function()
 end)
 
 -- Initialize
-Movement:InfiniteJump()
+UserInputService.JumpRequest:Connect(function()
+    if Config.InfJumpEnabled then
+        local char = LocalPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChild("Humanoid")
+            if humanoid then humanoid:ChangeState("Jumping") end
+        end
+    end
+end)
+
 Aimbot:SilentAimHook()
+
+-- Menu Toggle (FIXED)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Config.MenuKey then
+        gui:Toggle()
+    end
+end)
 
 -- Main Loop
 RunService.RenderStepped:Connect(function()
     Aimbot:UpdateFOVCircle()
     
-    if Config.AimbotEnabled then
-        Aimbot:Run()
-    end
+    if Config.AimbotEnabled then Aimbot:Run() end
+    if Config.BoxEnabled or Config.TracersEnabled or Config.NameTags then ESP:Run() end
+    if Config.ChamsGun or Config.ChamsPlayer or Config.ChamsSky then Chams:Run() end
     
-    if Config.BoxEnabled or Config.TracersEnabled or Config.NameTags then
-        ESP:Run()
-    end
-    
-    if Config.ChamsGun or Config.ChamsPlayer or Config.ChamsSky then
-        Chams:Run()
+    -- Wallbang
+    if Config.Wallbang then
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
     end
 end)
 
@@ -1556,5 +1418,5 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     Movement:UpdateJump()
 end)
 
-print("MM2 Script v2.1 Loaded!")
+print("MM2 Script v3.0 Loaded!")
 print("Press RightShift to toggle menu")
