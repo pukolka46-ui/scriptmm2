@@ -1,5 +1,5 @@
 --[[
-    MM2 Script v1.2
+    MM2 Script v2.0
     Murder Mystery 2 GUI Script
     
     Injection:
@@ -20,7 +20,7 @@ local Config = {
     AimbotFOV = 150,
     AimbotSmooth = 5,
     SilentAim = false,
-    ShowFOV = true,
+    ShowFOV = false,
     
     -- Visuals
     ESPEnabled = false,
@@ -29,12 +29,26 @@ local Config = {
     NameTags = false,
     Distance = 1000,
     
+    -- Rage
+    SpinEnabled = false,
+    SpinSpeed = 50,
+    
+    -- Movement
+    SpeedEnabled = false,
+    SpeedValue = 16,
+    InfJumpEnabled = false,
+    JumpPower = 50,
+    FlyEnabled = false,
+    FlySpeed = 100,
+    NoclipEnabled = false,
+    InvisibleEnabled = false,
+    
     -- Settings
     TeamCheck = true,
     MenuKey = Enum.KeyCode.RightShift
 }
 
--- ==================== THEME (NEW DESIGN) ====================
+-- ==================== THEME ====================
 local Theme = {
     Background = Color3.fromRGB(18, 18, 18),
     Sidebar = Color3.fromRGB(25, 25, 25),
@@ -50,8 +64,6 @@ local Theme = {
     SliderBar = Color3.fromRGB(40, 40, 40),
     SliderFill = Color3.fromRGB(255, 65, 65),
     ButtonBackground = Color3.fromRGB(255, 65, 65),
-    GradientStart = Color3.fromRGB(255, 65, 65),
-    GradientEnd = Color3.fromRGB(255, 150, 65),
 }
 
 -- ==================== GUI ====================
@@ -81,14 +93,12 @@ function GUI.new(title, size)
     mainCorner.CornerRadius = UDim.new(0, 16)
     mainCorner.Parent = mainFrame
     
-    -- Gradient border effect
     local borderGradient = Instance.new("UIStroke")
     borderGradient.Color = Theme.Accent
     borderGradient.Thickness = 2
     borderGradient.Transparency = 0.5
     borderGradient.Parent = mainFrame
     
-    -- Sidebar with gradient
     local sidebar = Instance.new("Frame")
     sidebar.Size = UDim2.new(0, 80, 1, 0)
     sidebar.BackgroundColor3 = Theme.Sidebar
@@ -106,7 +116,6 @@ function GUI.new(title, size)
     sidebarFix.BorderSizePixel = 0
     sidebarFix.Parent = sidebar
     
-    -- Accent line on sidebar
     local accentLine = Instance.new("Frame")
     accentLine.Size = UDim2.new(0, 3, 1, 0)
     accentLine.Position = UDim2.new(1, -3, 0, 0)
@@ -114,7 +123,6 @@ function GUI.new(title, size)
     accentLine.BorderSizePixel = 0
     accentLine.Parent = sidebar
     
-    -- Logo with gradient effect
     local logoLabel = Instance.new("TextLabel")
     logoLabel.Size = UDim2.new(1, 0, 0, 70)
     logoLabel.BackgroundTransparency = 1
@@ -134,7 +142,6 @@ function GUI.new(title, size)
     logoSubtitle.TextSize = 10
     logoSubtitle.Parent = sidebar
     
-    -- Buttons container
     local buttonsContainer = Instance.new("Frame")
     buttonsContainer.Size = UDim2.new(1, 0, 1, -130)
     buttonsContainer.Position = UDim2.new(0, 0, 0, 80)
@@ -146,7 +153,6 @@ function GUI.new(title, size)
     buttonsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
     buttonsList.Parent = buttonsContainer
     
-    -- Content area
     local contentArea = Instance.new("Frame")
     contentArea.Size = UDim2.new(1, -80, 1, 0)
     contentArea.Position = UDim2.new(0, 80, 0, 0)
@@ -154,7 +160,6 @@ function GUI.new(title, size)
     contentArea.BorderSizePixel = 0
     contentArea.Parent = mainFrame
     
-    -- Header
     local header = Instance.new("Frame")
     header.Size = UDim2.new(1, 0, 0, 55)
     header.BackgroundColor3 = Theme.Background
@@ -176,14 +181,13 @@ function GUI.new(title, size)
     headerSubtitle.Size = UDim2.new(1, -80, 0, 20)
     headerSubtitle.Position = UDim2.new(0, 25, 0, 30)
     headerSubtitle.BackgroundTransparency = 1
-    headerSubtitle.Text = "v1.2 | Made with ❤"
+    headerSubtitle.Text = "v2.0 | Made with ❤"
     headerSubtitle.TextColor3 = Theme.TextMuted
     headerSubtitle.Font = Enum.Font.Gotham
     headerSubtitle.TextSize = 11
     headerSubtitle.TextXAlignment = Enum.TextXAlignment.Left
     headerSubtitle.Parent = header
     
-    -- Close button
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 35, 0, 35)
     closeBtn.Position = UDim2.new(1, -50, 0.5, -17)
@@ -199,7 +203,6 @@ function GUI.new(title, size)
     closeCorner.CornerRadius = UDim.new(0, 10)
     closeCorner.Parent = closeBtn
     
-    -- Content frame
     local contentFrame = Instance.new("Frame")
     contentFrame.Size = UDim2.new(1, -50, 1, -80)
     contentFrame.Position = UDim2.new(0, 25, 0, 60)
@@ -217,7 +220,6 @@ function GUI.new(title, size)
     self.ContentFrame = contentFrame
     self.Visible = true
     
-    -- Close functionality
     closeBtn.MouseButton1Click:Connect(function()
         self:Toggle()
     end)
@@ -232,7 +234,6 @@ function GUI.new(title, size)
         closeBtn.TextColor3 = Theme.Accent
     end)
     
-    -- Dragging
     local dragging = false
     local dragStart, startPos
     
@@ -607,7 +608,6 @@ function GUI:CreateDropdown(tab, text, options, callback)
     local selectedOption = options[1]
     
     dropdownBtn.MouseButton1Click:Connect(function()
-        -- Simple cycle through options
         local currentIndex = table.find(options, selectedOption) or 1
         local nextIndex = (currentIndex % #options) + 1
         selectedOption = options[nextIndex]
@@ -659,7 +659,6 @@ function ESP:Run()
     local localRoot = localChar:FindFirstChild("HumanoidRootPart")
     if not localRoot then return end
     
-    -- Get screen center for tracers
     local viewportSize = camera.ViewportSize
     local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
     
@@ -674,35 +673,33 @@ function ESP:Run()
                 if root and humanoid and humanoid.Health > 0 then
                     local dist = (root.Position - localRoot.Position).Magnitude
                     if dist <= Config.Distance then
-                        -- Box - FIXED: Properly aligned to hitbox
+                        -- Box - FIXED: Exactly on hitbox
                         if Config.BoxEnabled then
                             local key = "box_" .. plr.UserId
                             table.insert(activeKeys, key)
                             
+                            -- Get exact character bounds
                             local head = char:FindFirstChild("Head")
-                            local leftLeg = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLowerLeg")
-                            local rightLeg = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightLowerLeg")
+                            local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
                             
-                            local minY = root.Position.Y - 3
-                            local maxY = root.Position.Y + 3
+                            -- Calculate exact box position
+                            local boxCenter = root.Position
+                            local boxHeight = 5.5 -- Standard R15/R6 height
+                            local boxWidth = 2.5
                             
-                            if head then
-                                maxY = head.Position.Y + 0.5
-                            end
-                            if leftLeg or rightLeg then
-                                local leg = leftLeg or rightLeg
-                                minY = leg.Position.Y - 0.5
+                            if head and torso then
+                                boxHeight = (head.Position.Y - torso.Position.Y) + 1.5
                             end
                             
-                            local topPos = Vector3.new(root.Position.X, maxY, root.Position.Z)
-                            local bottomPos = Vector3.new(root.Position.X, minY, root.Position.Z)
+                            local topPos = boxCenter + Vector3.new(0, boxHeight / 2 - 0.5, 0)
+                            local bottomPos = boxCenter - Vector3.new(0, boxHeight / 2 + 0.5, 0)
                             
                             local topScreen, topOnScreen = camera:WorldToScreenPoint(topPos)
                             local bottomScreen, bottomOnScreen = camera:WorldToScreenPoint(bottomPos)
                             
                             if topOnScreen and bottomOnScreen then
                                 local height = math.abs(bottomScreen.Y - topScreen.Y)
-                                local width = height * 0.5
+                                local width = height * 0.45
                                 
                                 if not self.Drawings[key] then
                                     self.Drawings[key] = Drawing.new("Square")
@@ -719,7 +716,7 @@ function ESP:Run()
                             end
                         end
                         
-                        -- Tracers - FIXED: From screen center, not cursor
+                        -- Tracers
                         if Config.TracersEnabled then
                             local key = "tracer_" .. plr.UserId
                             table.insert(activeKeys, key)
@@ -732,7 +729,7 @@ function ESP:Run()
                                     self.Drawings[key].Thickness = 2
                                 end
                                 self.Drawings[key].Visible = true
-                                self.Drawings[key].From = screenCenter -- Changed from mouse to screen center
+                                self.Drawings[key].From = screenCenter
                                 self.Drawings[key].To = Vector2.new(rootScreen.X, rootScreen.Y)
                                 self.Drawings[key].Color = self:getRoleColor(plr)
                             elseif self.Drawings[key] then
@@ -855,62 +852,39 @@ function Trolling:findSheriff()
 end
 
 function Trolling:flingPlayer(targetPlayer)
-    if not targetPlayer then 
-        warn("No target player!")
-        return false 
-    end
+    if not targetPlayer then return false end
     
     local localPlayer = Players.LocalPlayer
     local localChar = localPlayer.Character
-    if not localChar then 
-        warn("No local character!")
-        return false 
-    end
+    if not localChar then return false end
     
     local localRoot = localChar:FindFirstChild("HumanoidRootPart")
     local localHumanoid = localChar:FindFirstChild("Humanoid")
     
-    if not localRoot or not localHumanoid then 
-        warn("No root or humanoid!")
-        return false 
-    end
+    if not localRoot or not localHumanoid then return false end
     
     local targetChar = targetPlayer.Character
-    if not targetChar then 
-        warn("No target character!")
-        return false 
-    end
+    if not targetChar then return false end
     
     local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     local targetHumanoid = targetChar:FindFirstChild("Humanoid")
     
-    if not targetRoot or not targetHumanoid then 
-        warn("No target root or humanoid!")
-        return false 
-    end
+    if not targetRoot or not targetHumanoid then return false end
+    if targetHumanoid.Health <= 0 then return false end
     
-    if targetHumanoid.Health <= 0 then 
-        warn("Target is dead!")
-        return false 
-    end
-    
-    -- Store original values
     local originalWalkSpeed = localHumanoid.WalkSpeed
     local originalJumpPower = localHumanoid.JumpPower
     local originalGravity = Workspace.Gravity
     
-    -- Disable physics constraints
     Workspace.Gravity = 0
     localHumanoid.WalkSpeed = 0
     localHumanoid.JumpPower = 0
     
-    -- Teleport to target and create extreme velocity
     local flingPos = targetRoot.Position + Vector3.new(0, 5, 0)
     localRoot.CFrame = CFrame.new(flingPos)
     
     task.wait(0.1)
     
-    -- Apply extreme angular velocity for fling effect
     for i = 1, 10 do
         if localRoot and targetRoot then
             localRoot.Velocity = Vector3.new(math.random(-500, 500), math.random(500, 1000), math.random(-500, 500))
@@ -919,10 +893,8 @@ function Trolling:flingPlayer(targetPlayer)
         end
     end
     
-    -- Wait for impact
     task.wait(0.5)
     
-    -- Reset everything
     Workspace.Gravity = originalGravity
     localHumanoid.WalkSpeed = originalWalkSpeed
     localHumanoid.JumpPower = originalJumpPower
@@ -940,7 +912,6 @@ function Trolling:flingMurder()
     if murder then
         return self:flingPlayer(murder)
     end
-    warn("Could not find Murder!")
     return false
 end
 
@@ -949,8 +920,184 @@ function Trolling:flingSheriff()
     if sheriff then
         return self:flingPlayer(sheriff)
     end
-    warn("Could not find Sheriff!")
     return false
+end
+
+-- ==================== MOVEMENT MODULE ====================
+local Movement = {}
+Movement.Connections = {}
+Movement.FlyConnection = nil
+Movement.NoclipConnection = nil
+
+function Movement:UpdateSpeed()
+    local localPlayer = Players.LocalPlayer
+    local char = localPlayer.Character
+    if not char then return end
+    
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        if Config.SpeedEnabled then
+            humanoid.WalkSpeed = Config.SpeedValue
+        else
+            humanoid.WalkSpeed = 16
+        end
+    end
+end
+
+function Movement:UpdateJump()
+    local localPlayer = Players.LocalPlayer
+    local char = localPlayer.Character
+    if not char then return end
+    
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.JumpPower = Config.JumpPower
+    end
+end
+
+function Movement:InfiniteJump()
+    local localPlayer = Players.LocalPlayer
+    
+    UserInputService.JumpRequest:Connect(function()
+        if Config.InfJumpEnabled then
+            local char = localPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoid:ChangeState("Jumping")
+                end
+            end
+        end
+    end)
+end
+
+function Movement:Fly()
+    local localPlayer = Players.LocalPlayer
+    local char = localPlayer.Character
+    if not char then return end
+    
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    if self.FlyConnection then
+        self.FlyConnection:Disconnect()
+        self.FlyConnection = nil
+    end
+    
+    if Config.FlyEnabled then
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Name = "FlyVelocity"
+        bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.Parent = root
+        
+        local bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.Name = "FlyGyro"
+        bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bodyGyro.P = 9e4
+        bodyGyro.Parent = root
+        
+        self.FlyConnection = RunService.RenderStepped:Connect(function()
+            if not Config.FlyEnabled or not root or not root.Parent then
+                if bodyVelocity then bodyVelocity:Destroy() end
+                if bodyGyro then bodyGyro:Destroy() end
+                return
+            end
+            
+            local camera = Workspace.CurrentCamera
+            local moveDir = Vector3.new(0, 0, 0)
+            
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                moveDir = moveDir + camera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                moveDir = moveDir - camera.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                moveDir = moveDir - camera.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                moveDir = moveDir + camera.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                moveDir = moveDir + Vector3.new(0, 1, 0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+                moveDir = moveDir - Vector3.new(0, 1, 0)
+            end
+            
+            bodyVelocity.Velocity = moveDir * Config.FlySpeed
+            bodyGyro.CFrame = camera.CFrame
+        end)
+    end
+end
+
+function Movement:Noclip()
+    if self.NoclipConnection then
+        self.NoclipConnection:Disconnect()
+        self.NoclipConnection = nil
+    end
+    
+    if Config.NoclipEnabled then
+        self.NoclipConnection = RunService.Stepped:Connect(function()
+            local char = Players.LocalPlayer.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    end
+end
+
+function Movement:Invisible()
+    local localPlayer = Players.LocalPlayer
+    local char = localPlayer.Character
+    if not char then return end
+    
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    if Config.InvisibleEnabled then
+        local newRoot = root:Clone()
+        newRoot.Name = "HumanoidRootPart"
+        newRoot.Anchored = true
+        newRoot.Transparency = 1
+        
+        root:Destroy()
+        newRoot.Parent = char
+        
+        Workspace.CurrentCamera.CameraSubject = char:FindFirstChild("Humanoid")
+    end
+end
+
+-- ==================== RAGE MODULE ====================
+local Rage = {}
+Rage.SpinConnection = nil
+
+function Rage:Spin()
+    if self.SpinConnection then
+        self.SpinConnection:Disconnect()
+        self.SpinConnection = nil
+    end
+    
+    if Config.SpinEnabled then
+        local localPlayer = Players.LocalPlayer
+        local angle = 0
+        
+        self.SpinConnection = RunService.RenderStepped:Connect(function()
+            local char = localPlayer.Character
+            if char then
+                local root = char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    angle = angle + (Config.SpinSpeed / 100)
+                    root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, math.rad(angle), 0)
+                end
+            end
+        end)
+    end
 end
 
 -- ==================== AIMBOT MODULE ====================
@@ -959,6 +1106,8 @@ local FOVCircle = nil
 
 function Aimbot:CreateFOVCircle()
     if FOVCircle then FOVCircle:Remove() end
+    
+    if not Config.ShowFOV then return end
     
     FOVCircle = Drawing.new("Circle")
     FOVCircle.Radius = Config.AimbotFOV
@@ -970,10 +1119,14 @@ function Aimbot:CreateFOVCircle()
 end
 
 function Aimbot:UpdateFOVCircle()
-    if not FOVCircle then return end
+    if not FOVCircle then 
+        if Config.ShowFOV then
+            self:CreateFOVCircle()
+        end
+        return 
+    end
     
     if Config.ShowFOV then
-        -- FIXED: Center of screen, not cursor
         local camera = Workspace.CurrentCamera
         local viewportSize = camera.ViewportSize
         local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
@@ -995,7 +1148,6 @@ function Aimbot:getBestTarget()
     local localRoot = localChar:FindFirstChild("HumanoidRootPart")
     if not localRoot then return nil end
     
-    -- Use screen center for FOV calculation
     local viewportSize = camera.ViewportSize
     local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
     
@@ -1015,7 +1167,6 @@ function Aimbot:getBestTarget()
                         if not isTeam then
                             local screenPos, onScreen = camera:WorldToScreenPoint(root.Position)
                             if onScreen then
-                                -- Distance from screen center
                                 local fov = Vector2.new(math.abs(screenPos.X - screenCenter.X), math.abs(screenPos.Y - screenCenter.Y)).Magnitude
                                 if fov <= Config.AimbotFOV then
                                     local score = fov + (dist / 10)
@@ -1052,6 +1203,35 @@ function Aimbot:Run()
     camera.CFrame = newCFrame
 end
 
+function Aimbot:SilentAimHook()
+    -- Hook gun shooting for silent aim
+    local localPlayer = Players.LocalPlayer
+    
+    localPlayer.Character.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") and Config.SilentAim then
+            local name = child.Name:lower()
+            if name:find("gun") or name:find("pistol") or name:find("revolver") or name:find("weapon") then
+                -- Hook the tool's activation
+                child.Activated:Connect(function()
+                    if Config.SilentAim then
+                        local target = self:getBestTarget()
+                        if target then
+                            local char = target.Character
+                            local head = char:FindFirstChild("Head")
+                            local aimPos = head and head.Position or target.Root.Position
+                            
+                            -- Snap camera to target
+                            local camera = Workspace.CurrentCamera
+                            local targetCFrame = CFrame.new(camera.CFrame.Position, aimPos)
+                            camera.CFrame = targetCFrame
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+end
+
 -- ==================== MAIN ====================
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
@@ -1063,6 +1243,7 @@ local gui = GUI.new("MM2 Script", UDim2.new(0, 650, 0, 450))
 local visualsTab = gui:CreateTab("Visuals", "👁")
 local aimbotTab = gui:CreateTab("Aimbot", "🎯")
 local legitTab = gui:CreateTab("Legit", "🚀")
+local rageTab = gui:CreateTab("Rage", "💀")
 local trollingTab = gui:CreateTab("Trolling", "😈")
 local settingsTab = gui:CreateTab("Settings", "⚙")
 
@@ -1076,7 +1257,7 @@ gui:CreateSlider(visualsTab, "Max Distance", 100, 2000, function(v) Config.Dista
 -- Aimbot
 gui:CreateSection(aimbotTab, "Main")
 gui:CreateToggle(aimbotTab, "Enable Aimbot", function(v) Config.AimbotEnabled = v end)
-gui:CreateToggle(aimbotTab, "Silent Aim", function(v) Config.SilentAim = v end)
+gui:CreateToggle(aimbotTab, "Silent Aim (Gun)", function(v) Config.SilentAim = v end)
 
 gui:CreateSection(aimbotTab, "Settings")
 gui:CreateToggle(aimbotTab, "Show FOV Circle", function(v) 
@@ -1090,7 +1271,51 @@ gui:CreateSlider(aimbotTab, "Smooth", 1, 20, function(v) Config.AimbotSmooth = v
 
 -- Legit Movement
 gui:CreateSection(legitTab, "Movement")
-gui:CreateToggle(legitTab, "Coming Soon", function(v) end)
+gui:CreateToggle(legitTab, "Speed Hack", function(v) 
+    Config.SpeedEnabled = v 
+    Movement:UpdateSpeed()
+end)
+gui:CreateSlider(legitTab, "Speed", 16, 200, function(v) 
+    Config.SpeedValue = v
+    Movement:UpdateSpeed()
+end)
+
+gui:CreateToggle(legitTab, "Infinite Jump", function(v) 
+    Config.InfJumpEnabled = v
+end)
+
+gui:CreateSlider(legitTab, "Jump Power", 10, 200, function(v) 
+    Config.JumpPower = v
+    Movement:UpdateJump()
+end)
+
+gui:CreateToggle(legitTab, "Fly", function(v) 
+    Config.FlyEnabled = v
+    Movement:Fly()
+end)
+gui:CreateSlider(legitTab, "Fly Speed", 50, 300, function(v) 
+    Config.FlySpeed = v
+end)
+
+gui:CreateToggle(legitTab, "Noclip", function(v) 
+    Config.NoclipEnabled = v
+    Movement:Noclip()
+end)
+
+gui:CreateToggle(legitTab, "Invisible", function(v) 
+    Config.InvisibleEnabled = v
+    Movement:Invisible()
+end)
+
+-- Rage
+gui:CreateSection(rageTab, "Anti-Aim")
+gui:CreateToggle(rageTab, "Spin Bot", function(v) 
+    Config.SpinEnabled = v
+    Rage:Spin()
+end)
+gui:CreateSlider(rageTab, "Spin Speed", 10, 200, function(v) 
+    Config.SpinSpeed = v
+end)
 
 -- Trolling
 gui:CreateSection(trollingTab, "Fling")
@@ -1153,12 +1378,12 @@ gui:CreateButton(settingsTab, "Unload Script", function()
     if gui.Window then gui.Window:Destroy() end
 end)
 
--- Initialize FOV Circle
-Aimbot:CreateFOVCircle()
+-- Initialize
+Movement:InfiniteJump()
+Aimbot:SilentAimHook()
 
 -- Main Loop
 RunService.RenderStepped:Connect(function()
-    -- Update FOV Circle
     Aimbot:UpdateFOVCircle()
     
     if Config.AimbotEnabled then
@@ -1170,12 +1395,13 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Menu Toggle
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Config.MenuKey then
-        gui:Toggle()
-    end
+-- Character added
+LocalPlayer.CharacterAdded:Connect(function(char)
+    char:WaitForChild("Humanoid")
+    task.wait(0.5)
+    Movement:UpdateSpeed()
+    Movement:UpdateJump()
 end)
 
-print("MM2 Script v1.2 Loaded!")
+print("MM2 Script v2.0 Loaded!")
 print("Press RightShift to toggle menu")
