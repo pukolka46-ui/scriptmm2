@@ -1,5 +1,5 @@
 --[[
-    MM2 Script v1.0
+    MM2 Script v1.1
     Murder Mystery 2 GUI Script
     
     Injection:
@@ -19,6 +19,7 @@ local Config = {
     AimbotFOV = 150,
     AimbotSmooth = 5,
     SilentAim = false,
+    ShowFOV = true,
     
     -- Visuals
     ESPEnabled = false,
@@ -525,6 +526,68 @@ function GUI:CreateButton(tab, text, callback)
     end)
 end
 
+function GUI:CreateDropdown(tab, text, options, callback)
+    local dropdownFrame = Instance.new("Frame")
+    dropdownFrame.Size = UDim2.new(1, 0, 0, 45)
+    dropdownFrame.BackgroundColor3 = Theme.SidebarButton
+    dropdownFrame.BorderSizePixel = 0
+    dropdownFrame.Parent = tab
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = dropdownFrame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.4, 0, 1, 0)
+    label.Position = UDim2.new(0, 15, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Theme.Text
+    label.Font = Enum.Font.GothamMedium
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = dropdownFrame
+    
+    local dropdownBtn = Instance.new("TextButton")
+    dropdownBtn.Size = UDim2.new(0.5, -20, 0, 28)
+    dropdownBtn.Position = UDim2.new(0.5, 0, 0.5, -14)
+    dropdownBtn.BackgroundColor3 = Theme.Sidebar
+    dropdownBtn.Text = options[1] or "Select..."
+    dropdownBtn.TextColor3 = Theme.Text
+    dropdownBtn.Font = Enum.Font.GothamMedium
+    dropdownBtn.TextSize = 13
+    dropdownBtn.AutoButtonColor = false
+    dropdownBtn.Parent = dropdownFrame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = dropdownBtn
+    
+    local dropdownOpen = false
+    local selectedOption = options[1]
+    
+    dropdownBtn.MouseButton1Click:Connect(function()
+        dropdownOpen = not dropdownOpen
+        
+        if dropdownOpen then
+            dropdownBtn.Text = "▼ " .. selectedOption
+        else
+            dropdownBtn.Text = selectedOption
+        end
+        
+        callback(selectedOption)
+    end)
+    
+    return {
+        SetValue = function(value)
+            selectedOption = value
+            dropdownBtn.Text = value
+            callback(value)
+        end,
+        GetValue = function() return selectedOption end
+    }
+end
+
 -- ==================== ESP MODULE ====================
 local ESP = {Drawings = {}}
 
@@ -570,21 +633,37 @@ function ESP:Run()
                 if root and humanoid and humanoid.Health > 0 then
                     local dist = (root.Position - localRoot.Position).Magnitude
                     if dist <= Config.Distance then
-                        -- Box
+                        -- Box - FIXED: Properly aligned to hitbox
                         if Config.BoxEnabled then
                             local key = "box_" .. plr.UserId
                             table.insert(activeKeys, key)
                             
-                            local size = Vector3.new(4, 6, 2)
-                            local topPos = root.Position + Vector3.new(0, size.Y / 2, 0)
-                            local bottomPos = root.Position - Vector3.new(0, size.Y / 2, 0)
+                            -- Get actual character dimensions
+                            local head = char:FindFirstChild("Head")
+                            local leftLeg = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLowerLeg")
+                            local rightLeg = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightLowerLeg")
+                            
+                            -- Calculate height from actual parts
+                            local minY = root.Position.Y - 3
+                            local maxY = root.Position.Y + 3
+                            
+                            if head then
+                                maxY = head.Position.Y + 0.5
+                            end
+                            if leftLeg or rightLeg then
+                                local leg = leftLeg or rightLeg
+                                minY = leg.Position.Y - 0.5
+                            end
+                            
+                            local topPos = Vector3.new(root.Position.X, maxY, root.Position.Z)
+                            local bottomPos = Vector3.new(root.Position.X, minY, root.Position.Z)
                             
                             local topScreen, topOnScreen = camera:WorldToScreenPoint(topPos)
                             local bottomScreen, bottomOnScreen = camera:WorldToScreenPoint(bottomPos)
                             
                             if topOnScreen and bottomOnScreen then
                                 local height = math.abs(bottomScreen.Y - topScreen.Y)
-                                local width = height * 0.6
+                                local width = height * 0.5
                                 
                                 if not self.Drawings[key] then
                                     self.Drawings[key] = Drawing.new("Square")
@@ -685,8 +764,155 @@ function ESP:Stop()
     self.Drawings = {}
 end
 
+-- ==================== TROLLING MODULE ====================
+local Trolling = {}
+
+function Trolling:findMurder()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Players.LocalPlayer then
+            local char = plr.Character
+            if char then
+                local function hasKnife(container)
+                    for _, item in ipairs(container:GetChildren()) do
+                        if item:IsA("Tool") and item.Name:lower():find("knife") then
+                            return true
+                        end
+                    end
+                    return false
+                end
+                
+                if hasKnife(char) then return plr end
+                local backpack = plr:FindFirstChild("Backpack")
+                if backpack and hasKnife(backpack) then return plr end
+            end
+        end
+    end
+    return nil
+end
+
+function Trolling:findSheriff()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Players.LocalPlayer then
+            local char = plr.Character
+            if char then
+                local function hasGun(container)
+                    for _, item in ipairs(container:GetChildren()) do
+                        if item:IsA("Tool") then
+                            local name = item.Name:lower()
+                            if name:find("gun") or name:find("pistol") or name:find("revolver") then
+                                return true
+                            end
+                        end
+                    end
+                    return false
+                end
+                
+                if hasGun(char) then return plr end
+                local backpack = plr:FindFirstChild("Backpack")
+                if backpack and hasGun(backpack) then return plr end
+            end
+        end
+    end
+    return nil
+end
+
+function Trolling:flingPlayer(targetPlayer)
+    if not targetPlayer then return false end
+    
+    local localChar = Players.LocalPlayer.Character
+    if not localChar then return false end
+    
+    local localRoot = localChar:FindFirstChild("HumanoidRootPart")
+    local localHumanoid = localChar:FindFirstChild("Humanoid")
+    
+    if not localRoot or not localHumanoid then return false end
+    
+    local targetChar = targetPlayer.Character
+    if not targetChar then return false end
+    
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+    local targetHumanoid = targetChar:FindFirstChild("Humanoid")
+    
+    if not targetRoot or not targetHumanoid then return false end
+    if targetHumanoid.Health <= 0 then return false end
+    
+    -- Store original state
+    local originalWalkSpeed = localHumanoid.WalkSpeed
+    local originalJumpPower = localHumanoid.JumpPower
+    
+    -- Set up for fling
+    localHumanoid.WalkSpeed = 0
+    localHumanoid.JumpPower = 0
+    
+    -- Calculate fling direction
+    local direction = (targetRoot.Position - localRoot.Position).Unit
+    local flingDistance = 3
+    
+    -- Teleport behind target
+    local flingPos = targetRoot.Position - (direction * flingDistance)
+    localRoot.CFrame = CFrame.new(flingPos, targetRoot.Position)
+    
+    -- Wait for physics
+    task.wait(0.1)
+    
+    -- Apply velocity for fling effect
+    localRoot.Velocity = direction * 500 + Vector3.new(0, 200, 0)
+    localRoot.RotVelocity = Vector3.new(9999, 9999, 9999)
+    
+    -- Wait for fling to complete
+    task.wait(0.5)
+    
+    -- Reset
+    localHumanoid.WalkSpeed = originalWalkSpeed
+    localHumanoid.JumpPower = originalJumpPower
+    localRoot.Velocity = Vector3.new(0, 0, 0)
+    localRoot.RotVelocity = Vector3.new(0, 0, 0)
+    
+    return true
+end
+
+function Trolling:flingMurder()
+    local murder = self:findMurder()
+    if murder then
+        return self:flingPlayer(murder)
+    end
+    return false
+end
+
+function Trolling:flingSheriff()
+    local sheriff = self:findSheriff()
+    if sheriff then
+        return self:flingPlayer(sheriff)
+    end
+    return false
+end
+
 -- ==================== AIMBOT MODULE ====================
 local Aimbot = {}
+local FOVCircle = nil
+
+function Aimbot:CreateFOVCircle()
+    if FOVCircle then FOVCircle:Remove() end
+    
+    FOVCircle = Drawing.new("Circle")
+    FOVCircle.Radius = Config.AimbotFOV
+    FOVCircle.Filled = false
+    FOVCircle.Thickness = 1
+    FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+    FOVCircle.Transparency = 0.5
+    FOVCircle.Visible = Config.ShowFOV
+end
+
+function Aimbot:UpdateFOVCircle()
+    if FOVCircle and Config.ShowFOV then
+        local mouse = UserInputService:GetMouseLocation()
+        FOVCircle.Position = Vector2.new(mouse.X, mouse.Y)
+        FOVCircle.Radius = Config.AimbotFOV
+        FOVCircle.Visible = Config.ShowFOV
+    elseif FOVCircle then
+        FOVCircle.Visible = false
+    end
+end
 
 function Aimbot:getBestTarget()
     local camera = game.Workspace.CurrentCamera
@@ -755,12 +981,13 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = game.Workspace.CurrentCamera
 
 -- Create GUI
-local gui = GUI.new("MM2 Script v1.0", UDim2.new(0, 600, 0, 400))
+local gui = GUI.new("MM2 Script v1.1", UDim2.new(0, 600, 0, 400))
 
 -- Create tabs
 local visualsTab = gui:CreateTab("Visuals", "👁")
 local aimbotTab = gui:CreateTab("Aimbot", "🎯")
 local legitTab = gui:CreateTab("Legit", "🚀")
+local trollingTab = gui:CreateTab("Trolling", "😈")
 local settingsTab = gui:CreateTab("Settings", "⚙")
 
 -- Visuals
@@ -776,12 +1003,63 @@ gui:CreateToggle(aimbotTab, "Enable Aimbot", function(v) Config.AimbotEnabled = 
 gui:CreateToggle(aimbotTab, "Silent Aim", function(v) Config.SilentAim = v end)
 
 gui:CreateSection(aimbotTab, "Settings")
-gui:CreateSlider(aimbotTab, "FOV", 50, 300, function(v) Config.AimbotFOV = v end)
+gui:CreateToggle(aimbotTab, "Show FOV Circle", function(v) 
+    Config.ShowFOV = v
+    Aimbot:CreateFOVCircle()
+end)
+gui:CreateSlider(aimbotTab, "FOV", 50, 300, function(v) 
+    Config.AimbotFOV = v
+    if FOVCircle then FOVCircle.Radius = v end
+end)
 gui:CreateSlider(aimbotTab, "Smooth", 1, 20, function(v) Config.AimbotSmooth = v end)
 
 -- Legit Movement
 gui:CreateSection(legitTab, "Movement")
 gui:CreateToggle(legitTab, "Coming Soon", function(v) end)
+
+-- Trolling
+gui:CreateSection(trollingTab, "Fling")
+gui:CreateButton(trollingTab, "🔥 Fling Murder", function()
+    local success = Trolling:flingMurder()
+    if success then
+        print("Successfully flung murder!")
+    else
+        warn("Could not find murder!")
+    end
+end)
+
+gui:CreateButton(trollingTab, "🔫 Fling Sheriff", function()
+    local success = Trolling:flingSheriff()
+    if success then
+        print("Successfully flung sheriff!")
+    else
+        warn("Could not find sheriff!")
+    end
+end)
+
+gui:CreateSection(trollingTab, "Player Selection")
+local selectedPlayer = nil
+local playerDropdown = gui:CreateDropdown(trollingTab, "Target", {"Select Player"}, function(v)
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.Name == v then
+            selectedPlayer = plr
+            break
+        end
+    end
+end)
+
+gui:CreateButton(trollingTab, "🎯 Fling Selected Player", function()
+    if selectedPlayer then
+        local success = Trolling:flingPlayer(selectedPlayer)
+        if success then
+            print("Successfully flung " .. selectedPlayer.Name)
+        else
+            warn("Failed to fling " .. selectedPlayer.Name)
+        end
+    else
+        warn("No player selected!")
+    end
+end)
 
 -- Settings
 gui:CreateSection(settingsTab, "General")
@@ -793,6 +1071,9 @@ end)
 
 -- Main Loop
 RunService.RenderStepped:Connect(function()
+    -- Update FOV Circle
+    Aimbot:UpdateFOVCircle()
+    
     if Config.AimbotEnabled then
         Aimbot:Run()
     end
@@ -809,5 +1090,8 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
-print("MM2 Script v1.0 Loaded!")
+-- Initialize FOV Circle
+Aimbot:CreateFOVCircle()
+
+print("MM2 Script v1.1 Loaded!")
 print("Press RightShift to toggle menu")
