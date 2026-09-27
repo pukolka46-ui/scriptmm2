@@ -553,10 +553,113 @@ end
 
 -- ==================== SKIN CHANGER ====================
 local SkinChanger = {}
-SkinChanger.KnifeSkins = {"Default", "Heat", "Chroma Heat", "Seer", "Chroma Seer", "Elderwood", "Icebeam", "Laser", "Prismatic", "Chroma Prismatic", "Biograft", "Chroma Biograft", "Batwing", "Ghost", "Phantom", "Crimson", "Nik's Scythe", "Sparkle Time", "Iceflake", "Hallow's Edge", "Eternal", "Hallow's Blade", "GhostKnife"}
-SkinChanger.GunSkins = {"Default", "Laser", "Chroma Laser", "Elderwood", "Icebeam", "Seer", "Chroma Seer", "Prismatic", "Chroma Prismatic", "Revolver", "Pixel", "Turkey", "America", "Sparkle Time", "GhostGun"}
 
-function SkinChanger:ApplySkin()
+-- Skin Categories
+SkinChanger.KnifeSkins = {
+    "Default", "Heat", "Chroma Heat", "Seer", "Chroma Seer", 
+    "Elderwood", "Icebeam", "Laser", "Prismatic", "Chroma Prismatic", 
+    "Biograft", "Chroma Biograft", "Batwing", "Ghost", "Phantom", 
+    "Crimson", "Nik's Scythe", "Sparkle Time", "Iceflake", "Hallow's Edge", 
+    "Eternal", "Hallow's Blade", "GhostKnife"
+}
+
+SkinChanger.GunSkins = {
+    "Default", "Laser", "Chroma Laser", "Elderwood", "Icebeam", 
+    "Seer", "Chroma Seer", "Prismatic", "Chroma Prismatic", "Revolver", 
+    "Pixel", "Turkey", "America", "Sparkle Time", "GhostGun"
+}
+
+SkinChanger.KillEffects = {
+    "Default", "Fire", "Ice", "Thunder", "Blood", 
+    "Confetti", "Rainbow", "Ghost", "Void", "Nature"
+}
+
+SkinChanger.SelectedKnife = "Default"
+SkinChanger.SelectedGun = "Default"
+SkinChanger.SelectedEffect = "Default"
+
+function SkinChanger:GiveSkin(skinType, skinName)
+    local player = Players.LocalPlayer
+    local char = player.Character
+    if not char then return end
+    
+    -- Visual feedback
+    print("[SkinChanger] Attempting to give " .. skinType .. ": " .. skinName)
+    
+    -- Try to find and fire the remote
+    local skinNameClean = skinName:gsub(" ", "")
+    local remoteName = "Spawn" .. skinNameClean
+    
+    -- Try ReplicatedStorage
+    local remote = ReplicatedStorage:FindFirstChild(remoteName)
+    if remote then
+        remote:FireServer()
+        print("[SkinChanger] Successfully fired remote: " .. remoteName)
+        return true
+    end
+    
+    -- Try other common remote locations
+    local commonRemotes = {
+        ReplicatedStorage:FindFirstChild("SkinRemotes"),
+        ReplicatedStorage:FindFirstChild("Weapons"),
+        ReplicatedStorage:FindFirstChild("GameRemotes")
+    }
+    
+    for _, remoteParent in ipairs(commonRemotes) do
+        if remoteParent then
+            local foundRemote = remoteParent:FindFirstChild(remoteName)
+            if foundRemote then
+                foundRemote:FireServer()
+                print("[SkinChanger] Found remote in alt location")
+                return true
+            end
+        end
+    end
+    
+    -- Visual inventory method (creates fake tool in backpack)
+    local backpack = player:FindFirstChild("Backpack")
+    if backpack then
+        -- Create a visual tool
+        local tool = Instance.new("Tool")
+        tool.Name = skinName
+        tool.ToolTip = skinType .. " Skin"
+        
+        -- Create a handle
+        local handle = Instance.new("Part")
+        handle.Name = "Handle"
+        handle.Size = Vector3.new(1, 1, 1)
+        handle.Anchored = false
+        handle.CanCollide = false
+        handle.Transparency = 0.5
+        handle.BrickColor = BrickColor.new("Really red")
+        handle.Parent = tool
+        
+        -- Add a visual indicator
+        local gui = Instance.new("BillboardGui")
+        gui.Size = UDim2.new(4, 0, 2, 0)
+        gui.StudsOffset = Vector3.new(0, 2, 0)
+        gui.Parent = handle
+        
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Text = skinName
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextStrokeTransparency = 0
+        label.TextScaled = true
+        label.Font = Enum.Font.GothamBold
+        label.Parent = gui
+        
+        tool.Parent = backpack
+        print("[SkinChanger] Created visual tool in backpack: " .. skinName)
+        return true
+    end
+    
+    warn("[SkinChanger] Could not give skin - no remote or backpack found")
+    return false
+end
+
+function SkinChanger:ApplyCurrentSkin()
     local char = Players.LocalPlayer.Character
     if not char then return end
     
@@ -564,17 +667,82 @@ function SkinChanger:ApplySkin()
         if tool:IsA("Tool") then
             local toolName = tool.Name:lower()
             
-            if toolName:find("knife") and Config.KnifeSkin ~= "Default" then
-                local skinName = Config.KnifeSkin:gsub(" ", "")
-                local remote = ReplicatedStorage:FindFirstChild("Spawn" .. skinName)
-                if remote then remote:FireServer() end
-            elseif (toolName:find("gun") or toolName:find("pistol") or toolName:find("revolver")) and Config.GunSkin ~= "Default" then
-                local skinName = Config.GunSkin:gsub(" ", "")
-                local remote = ReplicatedStorage:FindFirstChild("Spawn" .. skinName)
-                if remote then remote:FireServer() end
+            if toolName:find("knife") and self.SelectedKnife ~= "Default" then
+                self:GiveSkin("Knife", self.SelectedKnife)
+            elseif (toolName:find("gun") or toolName:find("pistol") or toolName:find("revolver")) and self.SelectedGun ~= "Default" then
+                self:GiveSkin("Gun", self.SelectedGun)
             end
         end
     end
+end
+
+-- GUI Button Grid for SkinChanger
+function GUI:CreateSkinButton(parent, text, callback, isSelected)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 120, 0, 30)
+    btn.BackgroundColor3 = isSelected and Theme.ToggleOn or Theme.SidebarButton
+    btn.Text = text
+    btn.TextColor3 = isSelected and Theme.Sidebar or Theme.Text
+    btn.Font = Enum.Font.GothamMedium
+    btn.TextSize = 11
+    btn.AutoButtonColor = false
+    btn.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+    
+    btn.MouseEnter:Connect(function()
+        if not isSelected then
+            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Theme.SidebarButtonHover}):Play()
+        end
+    end)
+    
+    btn.MouseLeave:Connect(function()
+        if not isSelected then
+            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Theme.SidebarButton}):Play()
+        end
+    end)
+    
+    btn.MouseButton1Click:Connect(function()
+        callback()
+    end)
+    
+    return btn
+end
+
+function GUI:CreateSkinGrid(tab, skins, skinType, currentSelection, onSelected)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 0, 120)
+    container.BackgroundTransparency = 1
+    container.Parent = tab
+    
+    local gridLayout = Instance.new("UIGridLayout")
+    gridLayout.CellSize = UDim2.new(0, 120, 0, 30)
+    gridLayout.CellPadding = UDim2.new(0, 5, 0, 5)
+    gridLayout.Parent = container
+    
+    local buttons = {}
+    
+    for _, skinName in ipairs(skins) do
+        local isSelected = (skinName == currentSelection)
+        local btn = self:CreateSkinButton(container, skinName, function()
+            -- Update selection
+            for b, name in pairs(buttons) do
+                b.BackgroundColor3 = Theme.SidebarButton
+                b.TextColor3 = Theme.Text
+            end
+            
+            btn.BackgroundColor3 = Theme.ToggleOn
+            btn.TextColor3 = Theme.Sidebar
+            
+            onSelected(skinName)
+        end, isSelected)
+        
+        buttons[btn] = skinName
+    end
+    
+    return container
 end
 
 -- ==================== OPTIMIZATION ====================
@@ -1301,6 +1469,7 @@ local aimbotTab = gui:CreateTab("Aimbot", "🎯")
 local legitTab = gui:CreateTab("Legit", "🚀")
 local rageTab = gui:CreateTab("Rage", "💀")
 local trollingTab = gui:CreateTab("Trolling", "😈")
+local skinTab = gui:CreateTab("Skins", "🗡")
 local moreTab = gui:CreateTab("More", "⚡")
 local settingsTab = gui:CreateTab("Settings", "⚙")
 
@@ -1316,9 +1485,24 @@ gui:CreateToggle(visualsTab, "Gun Chams", function(v) Config.ChamsGun = v if not
 gui:CreateToggle(visualsTab, "Player Chams", function(v) Config.ChamsPlayer = v if not v then Chams:RemoveChams() end end)
 gui:CreateToggle(visualsTab, "Sky Chams", function(v) Config.ChamsSky = v if not v then Chams:RemoveChams() end end)
 
-gui:CreateSection(visualsTab, "Skin Changer")
-gui:CreateDropdown(visualsTab, "Knife Skin", SkinChanger.KnifeSkins, function(v) Config.KnifeSkin = v SkinChanger:ApplySkin() end)
-gui:CreateDropdown(visualsTab, "Gun Skin", SkinChanger.GunSkins, function(v) Config.GunSkin = v SkinChanger:ApplySkin() end)
+-- Skin Changer Tab
+gui:CreateSection(skinTab, "🔪 Knife Skins")
+gui:CreateSkinGrid(skinTab, SkinChanger.KnifeSkins, "Knife", SkinChanger.SelectedKnife, function(skin)
+    SkinChanger.SelectedKnife = skin
+    SkinChanger:GiveSkin("Knife", skin)
+end)
+
+gui:CreateSection(skinTab, "🔫 Gun Skins")
+gui:CreateSkinGrid(skinTab, SkinChanger.GunSkins, "Gun", SkinChanger.SelectedGun, function(skin)
+    SkinChanger.SelectedGun = skin
+    SkinChanger:GiveSkin("Gun", skin)
+end)
+
+gui:CreateSection(skinTab, "✨ Kill Effects")
+gui:CreateSkinGrid(skinTab, SkinChanger.KillEffects, "Effect", SkinChanger.SelectedEffect, function(effect)
+    SkinChanger.SelectedEffect = effect
+    print("[SkinChanger] Selected kill effect: " .. effect)
+end)
 
 -- Aimbot
 gui:CreateSection(aimbotTab, "Main")
