@@ -719,8 +719,8 @@ function Chams:Run()
     if Config.ChamsSky then self:ApplySkyChams() end
 end
 
--- ==================== ESP ====================
-local ESP = {Drawings = {}}
+-- ==================== ESP (CHAMS STYLE) ====================
+local ESP = {Drawings = {}, Highlights = {}}
 
 function ESP:getRoleColor(player)
     local char = player.Character
@@ -744,6 +744,36 @@ function ESP:getRoleColor(player)
     return Color3.fromRGB(200, 200, 200)
 end
 
+function ESP:ApplyChams(player)
+    local char = player.Character
+    if not char then return end
+    
+    -- Remove existing highlight
+    local existing = char:FindFirstChild("ESP_Chams")
+    if existing then existing:Destroy() end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESP_Chams"
+    highlight.FillColor = self:getRoleColor(player)
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.FillTransparency = 0.3
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Adornee = char
+    highlight.Parent = char
+    
+    self.Highlights[player.UserId] = highlight
+end
+
+function ESP:RemoveChams(player)
+    if player and self.Highlights[player.UserId] then
+        if self.Highlights[player.UserId].Parent then
+            self.Highlights[player.UserId]:Destroy()
+        end
+        self.Highlights[player.UserId] = nil
+    end
+end
+
 function ESP:Run()
     local camera = Workspace.CurrentCamera
     local localPlayer = Players.LocalPlayer
@@ -757,6 +787,7 @@ function ESP:Run()
     local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
     
     local activeKeys = {}
+    local activePlayers = {}
     
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= localPlayer then
@@ -767,40 +798,17 @@ function ESP:Run()
                 if root and humanoid and humanoid.Health > 0 then
                     local dist = (root.Position - localRoot.Position).Magnitude
                     if dist <= Config.Distance then
-                        -- Box - FIXED: Proper calculation
+                        
+                        -- ESP Chams (Main feature)
                         if Config.BoxEnabled then
-                            local key = "box_" .. plr.UserId
-                            table.insert(activeKeys, key)
+                            table.insert(activePlayers, plr.UserId)
                             
-                            local head = char:FindFirstChild("Head")
-                            local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-                            
-                            local height = 5
-                            if head and torso then height = (head.Position.Y - torso.Position.Y) + 2.5 end
-                            
-                            local centerPos = root.Position
-                            local topPos = centerPos + Vector3.new(0, height / 2 - 1, 0)
-                            local bottomPos = centerPos - Vector3.new(0, height / 2 - 1, 0)
-                            
-                            local topScreen, topOnScreen = camera:WorldToScreenPoint(topPos)
-                            local bottomScreen, bottomOnScreen = camera:WorldToScreenPoint(bottomPos)
-                            
-                            if topOnScreen and bottomOnScreen then
-                                local boxHeight = math.abs(bottomScreen.Y - topScreen.Y)
-                                local boxWidth = boxHeight * 0.6
-                                
-                                if not self.Drawings[key] then
-                                    self.Drawings[key] = Drawing.new("Square")
-                                    self.Drawings[key].Thickness = 2
-                                    self.Drawings[key].Filled = false
-                                end
-                                
-                                self.Drawings[key].Visible = true
-                                self.Drawings[key].Size = Vector2.new(boxWidth, boxHeight)
-                                self.Drawings[key].Position = Vector2.new(topScreen.X - boxWidth / 2, topScreen.Y)
-                                self.Drawings[key].Color = self:getRoleColor(plr)
-                            elseif self.Drawings[key] then
-                                self.Drawings[key].Visible = false
+                            -- Update or create chams
+                            if not self.Highlights[plr.UserId] or not self.Highlights[plr.UserId].Parent then
+                                self:ApplyChams(plr)
+                            else
+                                -- Update color in real-time
+                                self.Highlights[plr.UserId].FillColor = self:getRoleColor(plr)
                             end
                         end
                         
@@ -817,7 +825,7 @@ function ESP:Run()
                                     self.Drawings[key].Thickness = 2
                                 end
                                 self.Drawings[key].Visible = true
-                                self.Drawings[key].From = screenCenter
+                                self.Drawings[key].From = Vector2.new(viewportSize.X / 2, viewportSize.Y)
                                 self.Drawings[key].To = Vector2.new(rootScreen.X, rootScreen.Y)
                                 self.Drawings[key].Color = self:getRoleColor(plr)
                             elseif self.Drawings[key] then
@@ -871,6 +879,17 @@ function ESP:Run()
         end
     end
     
+    -- Remove inactive chams
+    for userId, highlight in pairs(self.Highlights) do
+        if not table.find(activePlayers, userId) then
+            if highlight and highlight.Parent then
+                highlight:Destroy()
+            end
+            self.Highlights[userId] = nil
+        end
+    end
+    
+    -- Remove inactive drawings
     for key, drawing in pairs(self.Drawings) do
         if drawing and not table.find(activeKeys, key) then
             drawing:Remove()
@@ -884,6 +903,13 @@ function ESP:Stop()
         if drawing then drawing:Remove() end
     end
     self.Drawings = {}
+    
+    for _, highlight in pairs(self.Highlights) do
+        if highlight and highlight.Parent then
+            highlight:Destroy()
+        end
+    end
+    self.Highlights = {}
 end
 
 -- ==================== TROLLING ====================
@@ -1279,10 +1305,10 @@ local moreTab = gui:CreateTab("More", "⚡")
 local settingsTab = gui:CreateTab("Settings", "⚙")
 
 -- Visuals
-gui:CreateSection(visualsTab, "ESP")
-gui:CreateToggle(visualsTab, "ESP Box", function(v) Config.BoxEnabled = v end)
+gui:CreateSection(visualsTab, "ESP (Chams)")
+local espToggle = gui:CreateToggle(visualsTab, "ESP Chams (Player Glow)", function(v) Config.BoxEnabled = v if not v then ESP:Stop() end end)
 gui:CreateToggle(visualsTab, "Tracers", function(v) Config.TracersEnabled = v end)
-gui:CreateToggle(visualsTab, "Name Tags", function(v) Config.NameTags = v end)
+gui:CreateToggle(visualsTab, "Name Tags + Distance", function(v) Config.NameTags = v end)
 gui:CreateSlider(visualsTab, "Max Distance", 100, 2000, function(v) Config.Distance = v end)
 
 gui:CreateSection(visualsTab, "Chams")
@@ -1384,7 +1410,7 @@ Aimbot:SilentAimHook()
 
 -- Menu Toggle (FIXED)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Config.MenuKey then
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Config.MenuKey then
         gui:Toggle()
     end
 end)
