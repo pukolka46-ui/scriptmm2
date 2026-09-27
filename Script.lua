@@ -1,5 +1,5 @@
 --[[
-    MM2 Script v2.0
+    MM2 Script v2.1
     Murder Mystery 2 GUI Script
     
     Injection:
@@ -12,6 +12,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
 
 -- ==================== CONFIG ====================
 local Config = {
@@ -28,6 +29,9 @@ local Config = {
     BoxEnabled = false,
     NameTags = false,
     Distance = 1000,
+    ChamsGun = false,
+    ChamsPlayer = false,
+    ChamsSky = false,
     
     -- Rage
     SpinEnabled = false,
@@ -181,7 +185,7 @@ function GUI.new(title, size)
     headerSubtitle.Size = UDim2.new(1, -80, 0, 20)
     headerSubtitle.Position = UDim2.new(0, 25, 0, 30)
     headerSubtitle.BackgroundTransparency = 1
-    headerSubtitle.Text = "v2.0 | Made with ❤"
+    headerSubtitle.Text = "v2.1 | Made with ❤"
     headerSubtitle.TextColor3 = Theme.TextMuted
     headerSubtitle.Font = Enum.Font.Gotham
     headerSubtitle.TextSize = 11
@@ -625,6 +629,125 @@ function GUI:CreateDropdown(tab, text, options, callback)
     }
 end
 
+-- ==================== CHAMS MODULE ====================
+local Chams = {}
+Chams.Highlights = {}
+
+function Chams:ApplyGunChams()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Players.LocalPlayer then
+            local char = plr.Character
+            if char then
+                for _, item in ipairs(char:GetChildren()) do
+                    if item:IsA("Tool") then
+                        local handle = item:FindFirstChild("Handle")
+                        if handle and not handle:FindFirstChild("ChamsHighlight") then
+                            local highlight = Instance.new("Highlight")
+                            highlight.Name = "ChamsHighlight"
+                            highlight.FillColor = Color3.fromRGB(255, 50, 50)
+                            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            highlight.FillTransparency = 0.5
+                            highlight.OutlineTransparency = 0
+                            highlight.Adornee = handle
+                            highlight.Parent = handle
+                            table.insert(self.Highlights, highlight)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+function Chams:ApplyPlayerChams()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Players.LocalPlayer and plr.Character and not plr.Character:FindFirstChild("PlayerChams") then
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "PlayerChams"
+            
+            -- Color based on role
+            local function getRoleColor()
+                local char = plr.Character
+                if not char then return Color3.fromRGB(200, 200, 200) end
+                
+                local function hasItem(name)
+                    for _, item in ipairs(char:GetChildren()) do
+                        if item:IsA("Tool") and item.Name:lower():find(name:lower()) then return true end
+                    end
+                    local backpack = plr:FindFirstChild("Backpack")
+                    if backpack then
+                        for _, item in ipairs(backpack:GetChildren()) do
+                            if item:IsA("Tool") and item.Name:lower():find(name:lower()) then return true end
+                        end
+                    end
+                    return false
+                end
+                
+                if hasItem("knife") then return Color3.fromRGB(255, 50, 50) end
+                if hasItem("gun") or hasItem("pistol") then return Color3.fromRGB(50, 150, 255) end
+                return Color3.fromRGB(200, 200, 200)
+            end
+            
+            highlight.FillColor = getRoleColor()
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.FillTransparency = 0.7
+            highlight.OutlineTransparency = 0
+            highlight.Adornee = plr.Character
+            highlight.Parent = plr.Character
+            table.insert(self.Highlights, highlight)
+        end
+    end
+end
+
+function Chams:ApplySkyChams()
+    if not Lighting:FindFirstChild("SkyChams") then
+        local sky = Instance.new("Sky")
+        sky.Name = "SkyChams"
+        sky.SkyboxBk = "rbxassetid://1234567890"
+        sky.SkyboxDn = "rbxassetid://1234567890"
+        sky.SkyboxFt = "rbxassetid://1234567890"
+        sky.SkyboxLf = "rbxassetid://1234567890"
+        sky.SkyboxRt = "rbxassetid://1234567890"
+        sky.SkyboxUp = "rbxassetid://1234567890"
+        sky.Parent = Lighting
+    end
+    
+    Lighting.Brightness = 2
+    Lighting.ClockSpeed = 0
+    Lighting.TimeOfDay = 12
+    Lighting.FogEnd = 100000
+    Lighting.FogStart = 0
+    Lighting.GlobalShadows = false
+    Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+end
+
+function Chams:RemoveChams()
+    for _, highlight in ipairs(self.Highlights) do
+        if highlight and highlight.Parent then
+            highlight:Destroy()
+        end
+    end
+    self.Highlights = {}
+    
+    -- Remove sky chams
+    local skyChams = Lighting:FindFirstChild("SkyChams")
+    if skyChams then skyChams:Destroy() end
+end
+
+function Chams:Run()
+    if Config.ChamsGun then
+        self:ApplyGunChams()
+    end
+    
+    if Config.ChamsPlayer then
+        self:ApplyPlayerChams()
+    end
+    
+    if Config.ChamsSky then
+        self:ApplySkyChams()
+    end
+end
+
 -- ==================== ESP MODULE ====================
 local ESP = {Drawings = {}}
 
@@ -673,33 +796,30 @@ function ESP:Run()
                 if root and humanoid and humanoid.Health > 0 then
                     local dist = (root.Position - localRoot.Position).Magnitude
                     if dist <= Config.Distance then
-                        -- Box - FIXED: Exactly on hitbox
+                        -- Box - FIXED: Properly centered on body
                         if Config.BoxEnabled then
                             local key = "box_" .. plr.UserId
                             table.insert(activeKeys, key)
                             
-                            -- Get exact character bounds
+                            -- Get actual character parts
                             local head = char:FindFirstChild("Head")
+                            local leftLeg = char:FindFirstChild("Left Leg") or char:FindFirstChild("LeftLowerLeg")
+                            local rightLeg = char:FindFirstChild("Right Leg") or char:FindFirstChild("RightLowerLeg")
                             local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
                             
-                            -- Calculate exact box position
-                            local boxCenter = root.Position
-                            local boxHeight = 5.5 -- Standard R15/R6 height
-                            local boxWidth = 2.5
+                            -- Calculate exact bounds
+                            local topY = head and (head.Position.Y + 0.5) or (root.Position.Y + 2.5)
+                            local bottomY = (leftLeg or rightLeg) and ((leftLeg or rightLeg).Position.Y - 0.5) or (root.Position.Y - 2.5)
                             
-                            if head and torso then
-                                boxHeight = (head.Position.Y - torso.Position.Y) + 1.5
-                            end
-                            
-                            local topPos = boxCenter + Vector3.new(0, boxHeight / 2 - 0.5, 0)
-                            local bottomPos = boxCenter - Vector3.new(0, boxHeight / 2 + 0.5, 0)
+                            local topPos = Vector3.new(root.Position.X, topY, root.Position.Z)
+                            local bottomPos = Vector3.new(root.Position.X, bottomY, root.Position.Z)
                             
                             local topScreen, topOnScreen = camera:WorldToScreenPoint(topPos)
                             local bottomScreen, bottomOnScreen = camera:WorldToScreenPoint(bottomPos)
                             
                             if topOnScreen and bottomOnScreen then
                                 local height = math.abs(bottomScreen.Y - topScreen.Y)
-                                local width = height * 0.45
+                                local width = height * 0.5
                                 
                                 if not self.Drawings[key] then
                                     self.Drawings[key] = Drawing.new("Square")
@@ -746,7 +866,7 @@ function ESP:Run()
                             
                             local head = char:FindFirstChild("Head")
                             local pos = head and head.Position or root.Position
-                            local screenPos, onScreen = camera:WorldToScreenPoint(pos + Vector3.new(0, 3, 0))
+                            local screenPos, onScreen = camera:WorldToScreenPoint(pos + Vector3.new(0, 2, 0))
                             
                             if onScreen then
                                 if not self.Drawings[key] then
@@ -984,14 +1104,20 @@ function Movement:Fly()
         self.FlyConnection = nil
     end
     
+    -- Remove existing fly components
+    local bodyVelocity = root:FindFirstChild("FlyVelocity")
+    local bodyGyro = root:FindFirstChild("FlyGyro")
+    if bodyVelocity then bodyVelocity:Destroy() end
+    if bodyGyro then bodyGyro:Destroy() end
+    
     if Config.FlyEnabled then
-        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity = Instance.new("BodyVelocity")
         bodyVelocity.Name = "FlyVelocity"
         bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
         bodyVelocity.Velocity = Vector3.new(0, 0, 0)
         bodyVelocity.Parent = root
         
-        local bodyGyro = Instance.new("BodyGyro")
+        bodyGyro = Instance.new("BodyGyro")
         bodyGyro.Name = "FlyGyro"
         bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
         bodyGyro.P = 9e4
@@ -999,8 +1125,9 @@ function Movement:Fly()
         
         self.FlyConnection = RunService.RenderStepped:Connect(function()
             if not Config.FlyEnabled or not root or not root.Parent then
-                if bodyVelocity then bodyVelocity:Destroy() end
-                if bodyGyro then bodyGyro:Destroy() end
+                -- Clean up when disabled
+                if bodyVelocity and bodyVelocity.Parent then bodyVelocity:Destroy() end
+                if bodyGyro and bodyGyro.Parent then bodyGyro:Destroy() end
                 return
             end
             
@@ -1049,6 +1176,16 @@ function Movement:Noclip()
                 end
             end
         end)
+    else
+        -- Re-enable collision
+        local char = Players.LocalPlayer.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
     end
 end
 
@@ -1204,14 +1341,12 @@ function Aimbot:Run()
 end
 
 function Aimbot:SilentAimHook()
-    -- Hook gun shooting for silent aim
     local localPlayer = Players.LocalPlayer
     
     localPlayer.Character.ChildAdded:Connect(function(child)
         if child:IsA("Tool") and Config.SilentAim then
             local name = child.Name:lower()
             if name:find("gun") or name:find("pistol") or name:find("revolver") or name:find("weapon") then
-                -- Hook the tool's activation
                 child.Activated:Connect(function()
                     if Config.SilentAim then
                         local target = self:getBestTarget()
@@ -1220,7 +1355,6 @@ function Aimbot:SilentAimHook()
                             local head = char:FindFirstChild("Head")
                             local aimPos = head and head.Position or target.Root.Position
                             
-                            -- Snap camera to target
                             local camera = Workspace.CurrentCamera
                             local targetCFrame = CFrame.new(camera.CFrame.Position, aimPos)
                             camera.CFrame = targetCFrame
@@ -1253,6 +1387,20 @@ gui:CreateToggle(visualsTab, "ESP Box", function(v) Config.BoxEnabled = v end)
 gui:CreateToggle(visualsTab, "Tracers", function(v) Config.TracersEnabled = v end)
 gui:CreateToggle(visualsTab, "Name Tags", function(v) Config.NameTags = v end)
 gui:CreateSlider(visualsTab, "Max Distance", 100, 2000, function(v) Config.Distance = v end)
+
+gui:CreateSection(visualsTab, "Chams")
+gui:CreateToggle(visualsTab, "Gun Chams", function(v) 
+    Config.ChamsGun = v
+    if not v then Chams:RemoveChams() end
+end)
+gui:CreateToggle(visualsTab, "Player Chams", function(v) 
+    Config.ChamsPlayer = v
+    if not v then Chams:RemoveChams() end
+end)
+gui:CreateToggle(visualsTab, "Sky Chams", function(v) 
+    Config.ChamsSky = v
+    if not v then Chams:RemoveChams() end
+end)
 
 -- Aimbot
 gui:CreateSection(aimbotTab, "Main")
@@ -1374,6 +1522,7 @@ gui:CreateSection(settingsTab, "General")
 gui:CreateToggle(settingsTab, "Team Check", function(v) Config.TeamCheck = v end)
 gui:CreateButton(settingsTab, "Unload Script", function()
     ESP:Stop()
+    Chams:RemoveChams()
     if FOVCircle then FOVCircle:Remove() end
     if gui.Window then gui.Window:Destroy() end
 end)
@@ -1393,6 +1542,10 @@ RunService.RenderStepped:Connect(function()
     if Config.BoxEnabled or Config.TracersEnabled or Config.NameTags then
         ESP:Run()
     end
+    
+    if Config.ChamsGun or Config.ChamsPlayer or Config.ChamsSky then
+        Chams:Run()
+    end
 end)
 
 -- Character added
@@ -1403,5 +1556,5 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     Movement:UpdateJump()
 end)
 
-print("MM2 Script v2.0 Loaded!")
+print("MM2 Script v2.1 Loaded!")
 print("Press RightShift to toggle menu")
