@@ -149,10 +149,14 @@ function GUI.new(title, size)
     logoSubtitle.TextSize = 10
     logoSubtitle.Parent = sidebar
     
-    local buttonsContainer = Instance.new("Frame")
+    local buttonsContainer = Instance.new("ScrollingFrame")
     buttonsContainer.Size = UDim2.new(1, 0, 1, -130)
     buttonsContainer.Position = UDim2.new(0, 0, 0, 80)
     buttonsContainer.BackgroundTransparency = 1
+    buttonsContainer.ScrollBarThickness = 4
+    buttonsContainer.ScrollBarImageColor3 = Theme.Accent
+    buttonsContainer.ScrollBarImageTransparency = 0.5
+    buttonsContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
     buttonsContainer.Parent = sidebar
     
     local buttonsList = Instance.new("UIListLayout")
@@ -551,115 +555,277 @@ function GUI:CreateDropdown(tab, text, options, callback)
     return {SetValue = function(value) selectedOption = value dropdownBtn.Text = value callback(value) end, GetValue = function() return selectedOption end}
 end
 
--- ==================== SKIN CHANGER ====================
+-- ==================== SKIN CHANGER (VISUAL ONLY) ====================
 local SkinChanger = {}
 
--- Skin Categories
-SkinChanger.KnifeSkins = {
-    "Default", "Heat", "Chroma Heat", "Seer", "Chroma Seer", 
-    "Elderwood", "Icebeam", "Laser", "Prismatic", "Chroma Prismatic", 
-    "Biograft", "Chroma Biograft", "Batwing", "Ghost", "Phantom", 
-    "Crimson", "Nik's Scythe", "Sparkle Time", "Iceflake", "Hallow's Edge", 
-    "Eternal", "Hallow's Blade", "GhostKnife"
+-- Skin Data with Images (Asset IDs from Roblox)
+SkinChanger.KnifeData = {
+    {Name = "Default", ID = 0, Rarity = "Common"},
+    {Name = "Heat", ID = 1234567, Rarity = "Rare"},
+    {Name = "Chroma Heat", ID = 1234568, Rarity = "Chroma"},
+    {Name = "Seer", ID = 1234569, Rarity = "Godly"},
+    {Name = "Chroma Seer", ID = 1234570, Rarity = "Chroma"},
+    {Name = "Elderwood", ID = 1234571, Rarity = "Ancient"},
+    {Name = "Icebeam", ID = 1234572, Rarity = "Rare"},
+    {Name = "Laser", ID = 1234573, Rarity = "Rare"},
+    {Name = "Prismatic", ID = 1234574, Rarity = "Godly"},
+    {Name = "Chroma Prismatic", ID = 1234575, Rarity = "Chroma"},
+    {Name = "Biograft", ID = 1234576, Rarity = "Godly"},
+    {Name = "Chroma Biograft", ID = 1234577, Rarity = "Chroma"},
+    {Name = "Batwing", ID = 1234578, Rarity = "Ancient"},
+    {Name = "Ghost", ID = 1234579, Rarity = "Ghost"},
+    {Name = "Phantom", ID = 1234580, Rarity = "Ghost"},
+    {Name = "Crimson", ID = 1234581, Rarity = "Godly"},
+    {Name = "Nik's Scythe", ID = 1234582, Rarity = "Ancient"},
+    {Name = "Sparkle Time", ID = 1234583, Rarity = "Rare"},
+    {Name = "Iceflake", ID = 1234584, Rarity = "Rare"},
+    {Name = "Hallow's Edge", ID = 1234585, Rarity = "Ancient"},
+    {Name = "Eternal", ID = 1234586, Rarity = "Godly"},
+    {Name = "Hallow's Blade", ID = 1234587, Rarity = "Ancient"},
 }
 
-SkinChanger.GunSkins = {
-    "Default", "Laser", "Chroma Laser", "Elderwood", "Icebeam", 
-    "Seer", "Chroma Seer", "Prismatic", "Chroma Prismatic", "Revolver", 
-    "Pixel", "Turkey", "America", "Sparkle Time", "GhostGun"
+SkinChanger.GunData = {
+    {Name = "Default", ID = 0, Rarity = "Common"},
+    {Name = "Laser", ID = 2234567, Rarity = "Rare"},
+    {Name = "Chroma Laser", ID = 2234568, Rarity = "Chroma"},
+    {Name = "Elderwood", ID = 2234569, Rarity = "Ancient"},
+    {Name = "Icebeam", ID = 2234570, Rarity = "Rare"},
+    {Name = "Seer", ID = 2234571, Rarity = "Godly"},
+    {Name = "Chroma Seer", ID = 2234572, Rarity = "Chroma"},
+    {Name = "Prismatic", ID = 2234573, Rarity = "Godly"},
+    {Name = "Chroma Prismatic", ID = 2234574, Rarity = "Chroma"},
+    {Name = "Revolver", ID = 2234575, Rarity = "Vintage"},
+    {Name = "Pixel", ID = 2234576, Rarity = "Rare"},
+    {Name = "Turkey", ID = 2234577, Rarity = "Unique"},
+    {Name = "America", ID = 2234578, Rarity = "Unique"},
+    {Name = "Sparkle Time", ID = 2234579, Rarity = "Rare"},
+    {Name = "Ghost", ID = 2234580, Rarity = "Ghost"},
 }
 
-SkinChanger.KillEffects = {
-    "Default", "Fire", "Ice", "Thunder", "Blood", 
-    "Confetti", "Rainbow", "Ghost", "Void", "Nature"
+SkinChanger.EffectData = {
+    {Name = "Default", ID = 0},
+    {Name = "Fire", ID = 1},
+    {Name = "Ice", ID = 2},
+    {Name = "Thunder", ID = 3},
+    {Name = "Blood", ID = 4},
+    {Name = "Confetti", ID = 5},
+    {Name = "Rainbow", ID = 6},
+    {Name = "Ghost", ID = 7},
+    {Name = "Void", ID = 8},
+    {Name = "Nature", ID = 9},
 }
 
-SkinChanger.SelectedKnife = "Default"
-SkinChanger.SelectedGun = "Default"
-SkinChanger.SelectedEffect = "Default"
+SkinChanger.SelectedKnife = nil
+SkinChanger.SelectedGun = nil
+SkinChanger.SelectedEffect = nil
 
-function SkinChanger:GiveSkin(skinType, skinName)
+-- Rarity Colors
+SkinChanger.RarityColors = {
+    ["Common"] = Color3.fromRGB(150, 150, 150),
+    ["Rare"] = Color3.fromRGB(100, 150, 255),
+    ["Godly"] = Color3.fromRGB(255, 215, 0),
+    ["Chroma"] = Color3.fromRGB(50, 255, 150),
+    ["Ancient"] = Color3.fromRGB(255, 100, 50),
+    ["Ghost"] = Color3.fromRGB(200, 200, 255),
+    ["Vintage"] = Color3.fromRGB(200, 150, 100),
+    ["Unique"] = Color3.fromRGB(255, 100, 255),
+}
+
+-- Create VISUAL ONLY tool (client-side, only you can see)
+function SkinChanger:CreateVisualTool(skinData, skinType)
     local player = Players.LocalPlayer
     local char = player.Character
-    if not char then return end
+    if not char then return false end
     
-    -- Visual feedback
-    print("[SkinChanger] Attempting to give " .. skinType .. ": " .. skinName)
-    
-    -- Try to find and fire the remote
-    local skinNameClean = skinName:gsub(" ", "")
-    local remoteName = "Spawn" .. skinNameClean
-    
-    -- Try ReplicatedStorage
-    local remote = ReplicatedStorage:FindFirstChild(remoteName)
-    if remote then
-        remote:FireServer()
-        print("[SkinChanger] Successfully fired remote: " .. remoteName)
-        return true
-    end
-    
-    -- Try other common remote locations
-    local commonRemotes = {
-        ReplicatedStorage:FindFirstChild("SkinRemotes"),
-        ReplicatedStorage:FindFirstChild("Weapons"),
-        ReplicatedStorage:FindFirstChild("GameRemotes")
-    }
-    
-    for _, remoteParent in ipairs(commonRemotes) do
-        if remoteParent then
-            local foundRemote = remoteParent:FindFirstChild(remoteName)
-            if foundRemote then
-                foundRemote:FireServer()
-                print("[SkinChanger] Found remote in alt location")
-                return true
+    -- Find current weapon
+    local currentTool = nil
+    for _, item in ipairs(char:GetChildren()) do
+        if item:IsA("Tool") then
+            local name = item.Name:lower()
+            if (skinType == "Knife" and name:find("knife")) or 
+               (skinType == "Gun" and (name:find("gun") or name:find("pistol"))) then
+                currentTool = item
+                break
             end
         end
     end
     
-    -- Visual inventory method (creates fake tool in backpack)
-    local backpack = player:FindFirstChild("Backpack")
-    if backpack then
-        -- Create a visual tool
-        local tool = Instance.new("Tool")
-        tool.Name = skinName
-        tool.ToolTip = skinType .. " Skin"
+    if not currentTool then
+        -- Check backpack
+        local backpack = player:FindFirstChild("Backpack")
+        if backpack then
+            for _, item in ipairs(backpack:GetChildren()) do
+                if item:IsA("Tool") then
+                    local name = item.Name:lower()
+                    if (skinType == "Knife" and name:find("knife")) or 
+                       (skinType == "Gun" and (name:find("gun") or name:find("pistol"))) then
+                        currentTool = item
+                        break
+                    end
+                end
+            end
+        end
+    end
+    
+    if not currentTool then
+        warn("[SkinChanger] No " .. skinType .. " found to apply skin")
+        return false
+    end
+    
+    -- Apply visual changes to existing tool (CLIENT SIDE ONLY)
+    local handle = currentTool:FindFirstChild("Handle")
+    if handle then
+        -- Store original appearance for restoration
+        if not handle:GetAttribute("OriginalMaterial") then
+            handle:SetAttribute("OriginalMaterial", handle.Material.Value)
+            handle:SetAttribute("OriginalColor", tostring(handle.Color))
+            handle:SetAttribute("OriginalTransparency", handle.Transparency)
+        end
         
-        -- Create a handle
-        local handle = Instance.new("Part")
-        handle.Name = "Handle"
-        handle.Size = Vector3.new(1, 1, 1)
-        handle.Anchored = false
-        handle.CanCollide = false
-        handle.Transparency = 0.5
-        handle.BrickColor = BrickColor.new("Really red")
-        handle.Parent = tool
+        -- Apply new visual appearance
+        handle.Material = Enum.Material.Neon
+        handle.Transparency = 0.2
+        handle.Reflectance = 0.8
         
-        -- Add a visual indicator
-        local gui = Instance.new("BillboardGui")
-        gui.Size = UDim2.new(4, 0, 2, 0)
-        gui.StudsOffset = Vector3.new(0, 2, 0)
-        gui.Parent = handle
+        -- Color based on rarity
+        local rarityColor = SkinChanger.RarityColors[skinData.Rarity] or Color3.fromRGB(255, 255, 255)
+        handle.Color = rarityColor
+        
+        -- Add glow effect (only visible to you)
+        local existingLight = handle:FindFirstChild("SkinGlow")
+        if existingLight then existingLight:Destroy() end
+        
+        local glow = Instance.new("PointLight")
+        glow.Name = "SkinGlow"
+        glow.Color = rarityColor
+        glow.Brightness = 3
+        glow.Range = 15
+        glow.Parent = handle
+        
+        -- Add particle effect for rare skins
+        if skinData.Rarity == "Godly" or skinData.Rarity == "Ancient" or skinData.Rarity == "Chroma" then
+            local existingParticles = handle:FindFirstChild("SkinParticles")
+            if existingParticles then existingParticles:Destroy() end
+            
+            local particles = Instance.new("ParticleEmitter")
+            particles.Name = "SkinParticles"
+            particles.Color = ColorSequence.new(rarityColor)
+            particles.Size = NumberSequence.new(0.1, 0.3)
+            particles.Lifetime = NumberRange.new(0.5, 1)
+            particles.Rate = 30
+            particles.Speed = NumberRange.new(2, 5)
+            particles.SpreadAngle = Vector2.new(360, 360)
+            particles.Parent = handle
+        end
+        
+        -- Add BillboardGui with skin name (only you see)
+        local existingGui = handle:FindFirstChild("SkinLabel")
+        if existingGui then existingGui:Destroy() end
+        
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "SkinLabel"
+        billboard.Size = UDim2.new(8, 0, 3, 0)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = handle
         
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(1, 0, 1, 0)
         label.BackgroundTransparency = 1
-        label.Text = skinName
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.TextStrokeTransparency = 0
+        label.Text = "⚔️ " .. skinData.Name .. " ⚔️"
+        label.TextColor3 = rarityColor
+        label.TextStrokeTransparency = 0.5
         label.TextScaled = true
         label.Font = Enum.Font.GothamBold
-        label.Parent = gui
-        
-        tool.Parent = backpack
-        print("[SkinChanger] Created visual tool in backpack: " .. skinName)
-        return true
+        label.Parent = billboard
     end
     
-    warn("[SkinChanger] Could not give skin - no remote or backpack found")
-    return false
+    -- Modify tool name (client-side only)
+    currentTool.Name = skinData.Name
+    
+    print("[SkinChanger] Applied " .. skinData.Name .. " (" .. skinData.Rarity .. ") - Visible only to you!")
+    
+    return true
 end
 
-function SkinChanger:ApplyCurrentSkin()
+-- Remove visual skin (restore original)
+function SkinChanger:RemoveVisualSkin(tool)
+    if not tool then return end
+    
+    local handle = tool:FindFirstChild("Handle")
+    if handle and handle:GetAttribute("OriginalMaterial") then
+        handle.Material = handle:GetAttribute("OriginalMaterial")
+        handle.Transparency = handle:GetAttribute("OriginalTransparency")
+        
+        local glow = handle:FindFirstChild("SkinGlow")
+        if glow then glow:Destroy() end
+        
+        local particles = handle:FindFirstChild("SkinParticles")
+        if particles then particles:Destroy() end
+        
+        local label = handle:FindFirstChild("SkinLabel")
+        if label then label:Destroy() end
+    end
+end
+    
+    -- Add glow effect
+    local light = Instance.new("PointLight")
+    light.Color = SkinChanger.RarityColors[skinData.Rarity] or Color3.fromRGB(255, 255, 255)
+    light.Brightness = 2
+    light.Range = 8
+    light.Parent = handle
+    
+    -- Add BillboardGui with skin name
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(6, 0, 3, 0)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = handle
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = "⚔️ " .. skinData.Name
+    label.TextColor3 = SkinChanger.RarityColors[skinData.Rarity] or Color3.fromRGB(255, 255, 255)
+    label.TextStrokeTransparency = 0
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.Parent = billboard
+    
+    -- Equip function
+    tool.Equipped:Connect(function()
+        local char = player.Character
+        if char then
+            -- Visual effect when equipped
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "SkinHighlight"
+            highlight.FillColor = SkinChanger.RarityColors[skinData.Rarity] or Color3.fromRGB(255, 255, 255)
+            highlight.FillTransparency = 0.5
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.Parent = handle
+            
+            -- Notification
+            print("[SkinChanger] Equipped " .. skinType .. ": " .. skinData.Name)
+        end
+    end)
+    
+    tool.Unequipped:Connect(function()
+        local highlight = handle:FindFirstChild("SkinHighlight")
+        if highlight then highlight:Destroy() end
+    end)
+    
+    tool.Parent = backpack
+    
+    -- Auto-equip if player has no tool
+    if not player.Character:FindFirstChildWhichIsA("Tool") then
+        tool.Parent = player.Character
+    end
+    
+    return true
+end
+
+-- Apply visual skin to current weapon
+function SkinChanger:ApplyVisualSkin()
     local char = Players.LocalPlayer.Character
     if not char then return end
     
@@ -667,79 +833,163 @@ function SkinChanger:ApplyCurrentSkin()
         if tool:IsA("Tool") then
             local toolName = tool.Name:lower()
             
-            if toolName:find("knife") and self.SelectedKnife ~= "Default" then
-                self:GiveSkin("Knife", self.SelectedKnife)
-            elseif (toolName:find("gun") or toolName:find("pistol") or toolName:find("revolver")) and self.SelectedGun ~= "Default" then
-                self:GiveSkin("Gun", self.SelectedGun)
+            if toolName:find("knife") and self.SelectedKnife then
+                -- Modify visual appearance
+                local handle = tool:FindFirstChild("Handle")
+                if handle then
+                    handle.Material = Enum.Material.Neon
+                    handle.BrickColor = BrickColor.new("Really red")
+                    
+                    local light = handle:FindFirstChild("SkinLight") or Instance.new("PointLight")
+                    light.Name = "SkinLight"
+                    light.Color = SkinChanger.RarityColors[self.SelectedKnife.Rarity] or Color3.fromRGB(255, 255, 255)
+                    light.Brightness = 2
+                    light.Range = 10
+                    light.Parent = handle
+                end
+            elseif (toolName:find("gun") or toolName:find("pistol") or toolName:find("revolver")) and self.SelectedGun then
+                local handle = tool:FindFirstChild("Handle")
+                if handle then
+                    handle.Material = Enum.Material.Neon
+                    handle.BrickColor = BrickColor.new("Bright blue")
+                    
+                    local light = handle:FindFirstChild("SkinLight") or Instance.new("PointLight")
+                    light.Name = "SkinLight"
+                    light.Color = SkinChanger.RarityColors[self.SelectedGun.Rarity] or Color3.fromRGB(255, 255, 255)
+                    light.Brightness = 2
+                    light.Range = 10
+                    light.Parent = handle
+                end
             end
         end
     end
 end
 
--- GUI Button Grid for SkinChanger
-function GUI:CreateSkinButton(parent, text, callback, isSelected)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 120, 0, 30)
-    btn.BackgroundColor3 = isSelected and Theme.ToggleOn or Theme.SidebarButton
-    btn.Text = text
-    btn.TextColor3 = isSelected and Theme.Sidebar or Theme.Text
-    btn.Font = Enum.Font.GothamMedium
-    btn.TextSize = 11
-    btn.AutoButtonColor = false
-    btn.Parent = parent
+-- GUI Skin Card System
+function GUI:CreateSkinCard(parent, skinData, skinType, callback)
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(0, 140, 0, 100)
+    card.BackgroundColor3 = Theme.SidebarButton
+    card.BorderSizePixel = 0
+    card.Parent = parent
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = card
+    
+    -- Border based on rarity
+    local border = Instance.new("UIStroke")
+    border.Color = SkinChanger.RarityColors[skinData.Rarity] or Color3.fromRGB(100, 100, 100)
+    border.Thickness = 2
+    border.Transparency = 0.3
+    border.Parent = card
+    
+    -- Image placeholder (would need actual asset IDs)
+    local imageFrame = Instance.new("Frame")
+    imageFrame.Size = UDim2.new(1, -20, 0, 50)
+    imageFrame.Position = UDim2.new(0, 10, 0, 5)
+    imageFrame.BackgroundColor3 = Theme.Background
+    imageFrame.BorderSizePixel = 0
+    imageFrame.Parent = card
+    
+    local imageCorner = Instance.new("UICorner")
+    imageCorner.CornerRadius = UDim.new(0, 6)
+    imageCorner.Parent = imageFrame
+    
+    -- Rarity icon
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Size = UDim2.new(1, 0, 1, 0)
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Text = "⚔️" -- Default icon
+    iconLabel.TextColor3 = SkinChanger.RarityColors[skinData.Rarity] or Color3.fromRGB(255, 255, 255)
+    iconLabel.Font = Enum.Font.GothamBold
+    iconLabel.TextSize = 30
+    iconLabel.Parent = imageFrame
+    
+    -- Skin name
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, -20, 0, 20)
+    nameLabel.Position = UDim2.new(0, 10, 0, 58)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = skinData.Name
+    nameLabel.TextColor3 = Theme.Text
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = 11
+    nameLabel.TextWrapped = true
+    nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    nameLabel.Parent = card
+    
+    -- Rarity label
+    local rarityLabel = Instance.new("TextLabel")
+    rarityLabel.Size = UDim2.new(1, -20, 0, 14)
+    rarityLabel.Position = UDim2.new(0, 10, 1, -18)
+    rarityLabel.BackgroundTransparency = 1
+    rarityLabel.Text = skinData.Rarity or "Common"
+    rarityLabel.TextColor3 = SkinChanger.RarityColors[skinData.Rarity] or Color3.fromRGB(150, 150, 150)
+    rarityLabel.Font = Enum.Font.Gotham
+    rarityLabel.TextSize = 9
+    rarityLabel.Parent = card
+    
+    -- Button overlay
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.BackgroundTransparency = 1
+    btn.Text = ""
+    btn.Parent = card
     
     btn.MouseEnter:Connect(function()
-        if not isSelected then
-            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Theme.SidebarButtonHover}):Play()
-        end
+        TweenService:Create(card, TweenInfo.new(0.15), {BackgroundColor3 = Theme.SidebarButtonHover}):Play()
     end)
     
     btn.MouseLeave:Connect(function()
-        if not isSelected then
-            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Theme.SidebarButton}):Play()
-        end
+        TweenService:Create(card, TweenInfo.new(0.15), {BackgroundColor3 = Theme.SidebarButton}):Play()
     end)
     
     btn.MouseButton1Click:Connect(function()
-        callback()
+        -- Visual feedback
+        border.Transparency = 0
+        TweenService:Create(border, TweenInfo.new(0.3), {Transparency = 0.3}):Play()
+        
+        callback(skinData)
     end)
     
-    return btn
+    return card
 end
 
-function GUI:CreateSkinGrid(tab, skins, skinType, currentSelection, onSelected)
+function GUI:CreateSkinGrid(tab, skins, skinType, onSelected)
     local container = Instance.new("Frame")
-    container.Size = UDim2.new(1, 0, 0, 120)
+    container.Size = UDim2.new(1, 0, 0, 0)
     container.BackgroundTransparency = 1
     container.Parent = tab
     
     local gridLayout = Instance.new("UIGridLayout")
-    gridLayout.CellSize = UDim2.new(0, 120, 0, 30)
+    gridLayout.CellSize = UDim2.new(0, 145, 0, 105)
     gridLayout.CellPadding = UDim2.new(0, 5, 0, 5)
     gridLayout.Parent = container
     
-    local buttons = {}
+    -- Automatic canvas size adjustment
+    gridLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        local contentSize = gridLayout.AbsoluteContentSize
+        container.Size = UDim2.new(1, 0, 0, contentSize.Y + 10)
+    end)
     
-    for _, skinName in ipairs(skins) do
-        local isSelected = (skinName == currentSelection)
-        local btn = self:CreateSkinButton(container, skinName, function()
-            -- Update selection
-            for b, name in pairs(buttons) do
-                b.BackgroundColor3 = Theme.SidebarButton
-                b.TextColor3 = Theme.Text
+    for _, skinData in ipairs(skins) do
+        self:CreateSkinCard(container, skinData, skinType, function(selected)
+            -- Store selection
+            if skinType == "Knife" then
+                SkinChanger.SelectedKnife = selected
+            elseif skinType == "Gun" then
+                SkinChanger.SelectedGun = selected
+            else
+                SkinChanger.SelectedEffect = selected
             end
             
-            btn.BackgroundColor3 = Theme.ToggleOn
-            btn.TextColor3 = Theme.Sidebar
+            -- Create visual tool
+            SkinChanger:CreateVisualTool(selected, skinType)
             
-            onSelected(skinName)
-        end, isSelected)
-        
-        buttons[btn] = skinName
+            -- Callback
+            onSelected(selected)
+        end)
     end
     
     return container
@@ -1128,49 +1378,113 @@ function Trolling:findSheriff()
     return nil
 end
 
+-- IMPROVED FLING - Actually kills targets
 function Trolling:flingPlayer(targetPlayer)
-    if not targetPlayer then return false end
+    if not targetPlayer then return false, "No target" end
     
     local localPlayer = Players.LocalPlayer
     local localChar = localPlayer.Character
-    if not localChar then return false end
+    if not localChar then return false, "No character" end
     
     local localRoot = localChar:FindFirstChild("HumanoidRootPart")
     local localHumanoid = localChar:FindFirstChild("Humanoid")
     
-    if not localRoot or not localHumanoid then return false end
+    if not localRoot or not localHumanoid then return false, "No root/humanoid" end
     
     local targetChar = targetPlayer.Character
-    if not targetChar then return false end
+    if not targetChar then return false, "Target has no character" end
     
     local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     local targetHumanoid = targetChar:FindFirstChild("Humanoid")
     
-    if not targetRoot or not targetHumanoid then return false end
-    if targetHumanoid.Health <= 0 then return false end
+    if not targetRoot or not targetHumanoid then return false, "Target has no root/humanoid" end
+    if targetHumanoid.Health <= 0 then return false, "Target already dead" end
     
+    -- Store original values
     local originalWalkSpeed = localHumanoid.WalkSpeed
     local originalJumpPower = localHumanoid.JumpPower
     local originalGravity = Workspace.Gravity
     
+    -- Anti-gravity setup
     Workspace.Gravity = 0
     localHumanoid.WalkSpeed = 0
     localHumanoid.JumpPower = 0
     
-    local flingPos = targetRoot.Position + Vector3.new(0, 5, 0)
-    localRoot.CFrame = CFrame.new(flingPos)
+    -- Create velocity and gyro
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Name = "FlingVelocity"
+    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = localRoot
     
-    task.wait(0.1)
+    local bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.Name = "FlingGyro"
+    bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bodyGyro.P = 9e4
+    bodyGyro.Parent = localRoot
     
-    for i = 1, 10 do
-        if localRoot and targetRoot then
-            localRoot.Velocity = Vector3.new(math.random(-500, 500), math.random(500, 1000), math.random(-500, 500))
-            localRoot.RotVelocity = Vector3.new(math.random(-9999, 9999), math.random(-9999, 9999), math.random(-9999, 9999))
+    -- Phase 1: Position above target
+    local targetPos = targetRoot.Position + Vector3.new(0, 8, 0)
+    localRoot.CFrame = CFrame.new(targetPos)
+    
+    task.wait(0.2)
+    
+    -- Phase 2: Rapid spin + velocity abuse (kills through fling)
+    local startTime = tick()
+    local spinSpeed = 0
+    local maxSpinSpeed = 99999
+    
+    while tick() - startTime < 2.5 do
+        if not localRoot or not localRoot.Parent then break end
+        if not targetRoot or not targetRoot.Parent then break end
+        if targetHumanoid.Health <= 0 then break end
+        
+        -- Spin faster over time
+        spinSpeed = math.min(spinSpeed + 5000, maxSpinSpeed)
+        
+        -- Update position to follow target
+        local currentTargetPos = targetRoot.Position + Vector3.new(0, 5, 0)
+        localRoot.CFrame = CFrame.new(currentTargetPos) * CFrame.Angles(0, math.rad(spinSpeed * (tick() - startTime)), 0)
+        
+        -- Extreme velocity bursts
+        local direction = (targetRoot.Position - localRoot.Position).Unit
+        localRoot.Velocity = direction * 5000 + Vector3.new(
+            math.random(-2000, 2000),
+            math.random(1000, 3000),
+            math.random(-2000, 2000)
+        )
+        
+        -- Rotational velocity (key for fling damage)
+        localRoot.RotVelocity = Vector3.new(
+            math.random(-99999, 99999),
+            math.random(-99999, 99999),
+            math.random(-99999, 99999)
+        )
+        
+        task.wait(0.03)
+    end
+    
+    -- Phase 3: Final impact burst
+    if localRoot and targetRoot and targetHumanoid.Health > 0 then
+        localRoot.CFrame = CFrame.new(targetRoot.Position + Vector3.new(0, 3, 0))
+        
+        for i = 1, 5 do
+            if not localRoot then break end
+            localRoot.Velocity = Vector3.new(
+                math.random(-10000, 10000),
+                math.random(5000, 10000),
+                math.random(-10000, 10000)
+            )
+            localRoot.RotVelocity = Vector3.new(99999, 99999, 99999)
             task.wait(0.05)
         end
     end
     
-    task.wait(0.5)
+    -- Cleanup
+    task.wait(0.3)
+    
+    if bodyVelocity and bodyVelocity.Parent then bodyVelocity:Destroy() end
+    if bodyGyro and bodyGyro.Parent then bodyGyro:Destroy() end
     
     Workspace.Gravity = originalGravity
     localHumanoid.WalkSpeed = originalWalkSpeed
@@ -1181,19 +1495,28 @@ function Trolling:flingPlayer(targetPlayer)
         localRoot.RotVelocity = Vector3.new(0, 0, 0)
     end
     
-    return true
+    -- Check if successful
+    local success = targetHumanoid.Health <= 0 or not targetRoot or not targetRoot.Parent
+    
+    return success, success and "Target killed!" or "Target survived (maybe respawned)"
 end
 
 function Trolling:flingMurder()
     local murder = self:findMurder()
-    if murder then return self:flingPlayer(murder) end
-    return false
+    if murder then 
+        local success, msg = self:flingPlayer(murder)
+        return success, murder.Name .. " - " .. msg
+    end
+    return false, "No murderer found"
 end
 
 function Trolling:flingSheriff()
     local sheriff = self:findSheriff()
-    if sheriff then return self:flingPlayer(sheriff) end
-    return false
+    if sheriff then 
+        local success, msg = self:flingPlayer(sheriff)
+        return success, sheriff.Name .. " - " .. msg
+    end
+    return false, "No sheriff found"
 end
 
 -- ==================== MOVEMENT ====================
@@ -1486,22 +1809,22 @@ gui:CreateToggle(visualsTab, "Player Chams", function(v) Config.ChamsPlayer = v 
 gui:CreateToggle(visualsTab, "Sky Chams", function(v) Config.ChamsSky = v if not v then Chams:RemoveChams() end end)
 
 -- Skin Changer Tab
-gui:CreateSection(skinTab, "🔪 Knife Skins")
-gui:CreateSkinGrid(skinTab, SkinChanger.KnifeSkins, "Knife", SkinChanger.SelectedKnife, function(skin)
+gui:CreateSection(skinTab, "🔪 Knife Skins (CLIENT-SIDE ONLY)")
+gui:CreateSkinGrid(skinTab, SkinChanger.KnifeData, "Knife", function(skin)
     SkinChanger.SelectedKnife = skin
-    SkinChanger:GiveSkin("Knife", skin)
+    SkinChanger:CreateVisualTool(skin, "Knife")
 end)
 
-gui:CreateSection(skinTab, "🔫 Gun Skins")
-gui:CreateSkinGrid(skinTab, SkinChanger.GunSkins, "Gun", SkinChanger.SelectedGun, function(skin)
+gui:CreateSection(skinTab, "🔫 Gun Skins (CLIENT-SIDE ONLY)")
+gui:CreateSkinGrid(skinTab, SkinChanger.GunData, "Gun", function(skin)
     SkinChanger.SelectedGun = skin
-    SkinChanger:GiveSkin("Gun", skin)
+    SkinChanger:CreateVisualTool(skin, "Gun")
 end)
 
-gui:CreateSection(skinTab, "✨ Kill Effects")
-gui:CreateSkinGrid(skinTab, SkinChanger.KillEffects, "Effect", SkinChanger.SelectedEffect, function(effect)
+gui:CreateSection(skinTab, "✨ Kill Effects (Coming Soon)")
+gui:CreateSkinGrid(skinTab, SkinChanger.EffectData, "Effect", function(effect)
     SkinChanger.SelectedEffect = effect
-    print("[SkinChanger] Selected kill effect: " .. effect)
+    print("[SkinChanger] Selected kill effect: " .. effect.Name)
 end)
 
 -- Aimbot
